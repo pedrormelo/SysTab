@@ -19,7 +19,19 @@ const searchTablets = async (req, res) => {
     }
 };
 
+const addTablets = async (req, res) => {
+    const { idTomb, imei, idUser, idEmp, idUnidade } = req.body;
+    try {
+        await pool.query(`INSERT INTO tablets (idTomb, imei, idUser, idEmp, idUnidade) VALUES ('${idTomb}', '${imei}', '${idUser}', '${idEmp}', '${idUnidade}')`);
+        res.status(201).send('Tablet added');
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+
+};
+
 module.exports = {
     getTablets,
     searchTablets,
+    addTablets,
 };
