@@ -3,7 +3,11 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
+<<<<<<< HEAD
 -- Tempo de geração: 02/05/2025 às 15:25
+=======
+-- Tempo de geração: 22/02/2025 às 16:00
+>>>>>>> 0dae163b15bf2a29f7de1e0cfe3cff3458b48cc4
 -- Versão do servidor: 10.4.32-MariaDB
 -- Versão do PHP: 8.2.12
 
@@ -88,12 +92,17 @@ INSERT INTO `regionais` (`idReg`, `numReg`) VALUES
 
 CREATE TABLE `tablets` (
   `idTomb` int(11) NOT NULL,
+<<<<<<< HEAD
   `imei` varchar(15) NOT NULL,
+=======
+  `imei` varchar(50) NOT NULL,
+>>>>>>> 0dae163b15bf2a29f7de1e0cfe3cff3458b48cc4
   `idUser` int(11) NOT NULL,
   `idEmp` int(11) NOT NULL,
   `idUnidade` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+<<<<<<< HEAD
 --
 -- Despejando dados para a tabela `tablets`
 --
@@ -101,6 +110,8 @@ CREATE TABLE `tablets` (
 INSERT INTO `tablets` (`idTomb`, `imei`, `idUser`, `idEmp`, `idUnidade`) VALUES
 (208474, '355637052256005', 4, 3, 4);
 
+=======
+>>>>>>> 0dae163b15bf2a29f7de1e0cfe3cff3458b48cc4
 -- --------------------------------------------------------
 
 --
@@ -240,8 +251,12 @@ INSERT INTO `unidades` (`idUnidade`, `nomeUnidade`, `idReg`) VALUES
 (120, 'USF BELO HORIZONTE', 1),
 (121, 'USF PACHECO', 2),
 (122, 'UBS  MARCOS FREIRE', 4),
+<<<<<<< HEAD
 (123, 'USF CURADO I - EQUIPE 2', 3),
 (124, 'Não Cadastrado', 1);
+=======
+(123, 'USF CURADO I - EQUIPE 2', 3);
+>>>>>>> 0dae163b15bf2a29f7de1e0cfe3cff3458b48cc4
 
 -- --------------------------------------------------------
 
@@ -256,6 +271,7 @@ CREATE TABLE `usuarios` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
+<<<<<<< HEAD
 -- Despejando dados para a tabela `usuarios`
 --
 
@@ -266,6 +282,8 @@ INSERT INTO `usuarios` (`idUser`, `cpf`, `nomeUser`) VALUES
 (4, '0', 'Não Cadastrado');
 
 --
+=======
+>>>>>>> 0dae163b15bf2a29f7de1e0cfe3cff3458b48cc4
 -- Índices para tabelas despejadas
 --
 
@@ -332,13 +350,21 @@ ALTER TABLE `empresas`
 -- AUTO_INCREMENT de tabela `unidades`
 --
 ALTER TABLE `unidades`
+<<<<<<< HEAD
   MODIFY `idUnidade` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=125;
+=======
+  MODIFY `idUnidade` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=124;
+>>>>>>> 0dae163b15bf2a29f7de1e0cfe3cff3458b48cc4
 
 --
 -- AUTO_INCREMENT de tabela `usuarios`
 --
 ALTER TABLE `usuarios`
+<<<<<<< HEAD
   MODIFY `idUser` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+=======
+  MODIFY `idUser` int(11) NOT NULL AUTO_INCREMENT;
+>>>>>>> 0dae163b15bf2a29f7de1e0cfe3cff3458b48cc4
 
 --
 -- Restrições para tabelas despejadas
