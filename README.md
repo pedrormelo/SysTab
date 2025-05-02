@@ -1,7 +1,9 @@
 # SysTab
 
+oi oi oi 
 
 Documentação do Sistema de Gerenciamento de Tablets
+
 ## **1. Introdução**
 
 Este documento apresenta o planejamento, estrutura e desenvolvimento do **Sistema de Gerenciamento de Tablets**, uma aplicação local desenvolvida para otimizar o controle de dispositivos utilizados na Secretaria de Saúde. O sistema permite a **consulta, edição e exclusão** de dados dos tablets, bem como o gerenciamento de **chamados de manutenção** e a geração de **Ordens de Serviço (O.S.)** para impressão.
