@@ -1,13 +1,11 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const tabletsController = require('../controllers/tabletsController');
+const tabletsController = require("../controllers/tabletsController");
 
-router.post('/', tabletsController.criarTablet);
-router.get('/', tabletsController.listarTablets);
-router.get('/:id', tabletsController.buscarTabletPorId);
-router.put('/:id', tabletsController.atualizarTablet);
-router.delete('/:id', tabletsController.deletarTablet);
-
-console.log('Tablets routes loaded!');
+router.post("/", tabletsController.criarTablet);
+router.get("/", tabletsController.listarTablets);
+router.get("/busca", tabletsController.buscarTablet);
+router.put("/:id", tabletsController.editarTablet);
+router.delete("/:id", tabletsController.deletarTablet);
 
 module.exports = router;

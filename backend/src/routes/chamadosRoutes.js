@@ -9,6 +9,8 @@ router.put('/:id', chamadosController.atualizarChamado);
 router.delete('/:id', chamadosController.deletarChamado);
 router.patch('/:id/fechar', chamadosController.atualizarStatus);
 router.get('/:id/pdf', chamadosController.gerarOS);
+router.get('/:id/atrasados', chamadosController.listarChamadosAtrasados);
+//router.get('/relatorio', chamadosController.gerarRelatorio);
 
 console.log('Chamados routes loaded!');
 

@@ -1,7 +1,10 @@
 const express = require("express");
 const router = express.Router();
-const regController = require("../controllers/regController");
+const regionaisController = require("../controllers/regionaisController");
 
-router.get("/", regController.listarRegionais);
+router.post("/", regionaisController.criarRegional);
+router.get("/", regionaisController.listarRegionais);
+router.put("/:id", regionaisController.editarRegional);
+router.delete("/:id", regionaisController.deletarRegional);
 
 module.exports = router;

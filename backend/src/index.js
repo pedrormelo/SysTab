@@ -5,6 +5,7 @@ const cors = require('cors');
 
 const tabletsRoutes = require('./routes/tabletsRoutes.js');
 const chamadosRoutes = require('./routes/chamadosRoutes.js');
+const empresasRoutes = require("./routes/empresasRoutes");
 
 const app = express();
 
@@ -17,7 +18,8 @@ app.use(express.json());
 
 //rotas
 app.use('/tablets', tabletsRoutes);
-app.use('/api/chamados', chamadosRoutes);
+app.use('/chamados', chamadosRoutes);
+app.use("/empresas", empresasRoutes);
 
 const PORT = process.env.PORT || 3001;
 
