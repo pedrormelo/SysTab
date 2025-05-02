@@ -1,19 +1,25 @@
-const express = require('express');
-const app = express();
-const cors = require('cors');
-
 require('dotenv').config();
 
-const tabletsRoutes = require('./routes/tablets.routes.js');
-const chamadosRoutes = require('./routes/calls.routes.js');
+const express = require('express');
+const cors = require('cors');
 
-app.use(cors());
+const tabletsRoutes = require('./routes/tabletsRoutes.js');
+const chamadosRoutes = require('./routes/chamadosRoutes.js');
+
+const app = express();
+
+app.use(cors({
+    origin: 'http://localhost:3000', //frontend url
+    credentials: true,
+}));
+
 app.use(express.json());
 
+//rotas
 app.use('/tablets', tabletsRoutes);
 app.use('/api/chamados', chamadosRoutes);
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 app.listen(PORT, () => {
     console.log(`Servidor rodando na porta ${PORT}`);
