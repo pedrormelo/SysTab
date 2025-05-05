@@ -31,7 +31,7 @@ exports.listarChamado = async (req, res) => {
 };
 
 // Listar chamados por tablet
-exports.listarChamadoPorId = async (req, res) => {
+exports.listarChamadoPorTablet = async (req, res) => {
     const { idTablet } = req.params;
     try {
         const [rows] = await db.query('SELECT * FROM chamados WHERE idTablet = ?', [idTablet]);

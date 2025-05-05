@@ -6,7 +6,7 @@ router.post('/', chamadosController.criarChamado);
 router.get('/atrasados', chamadosController.listarChamadosAtrasados); 
 router.get('/', chamadosController.listarChamado);
 router.get('/:id/pdf', chamadosController.gerarOS);
-router.get('/:id', chamadosController.listarChamadoPorId);
+router.get('/:id', chamadosController.listarChamadoPorTablet);
 router.get('/id/:id', chamadosController.buscarChamadoPorIdChamado);
 router.put('/:id', chamadosController.atualizarChamado);
 router.delete('/:id', chamadosController.deletarChamado);
