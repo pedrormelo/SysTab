@@ -7,6 +7,7 @@ const db = mysql.createPool({
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
+    charset: 'utf8mb4' // Ensure proper encoding
 });
 
 db.getConnection((err, connection) => {

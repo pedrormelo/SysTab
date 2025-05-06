@@ -1,7 +1,5 @@
 # SysTab
 
-oi oi oi 
-
 Documentação do Sistema de Gerenciamento de Tablets
 
 ## **1. Introdução**
@@ -54,3 +52,70 @@ O desenvolvimento do sistema segue a seguinte sequência de etapas:
 4. **Desenvolvimento do frontend**: Construção da interface gráfica utilizando **Vue.js**.
 5. **Integração e testes**: Validação das funcionalidades e ajustes necessários.
 6. **Geração e impressão da O.S.**: Implementação do modelo de impressão com os dados relevantes.
+
+## **8. Rotas da API**
+
+### **Usuários**
+- **POST /usuarios**: Criar um novo usuário.
+- **GET /usuarios**: Listar todos os usuários.
+- **PUT /usuarios/:id**: Atualizar um usuário existente.
+- **DELETE /usuarios/:id**: Deletar um usuário.
+
+### **Unidades**
+- **GET /unidades**: Listar todas as unidades.
+
+### **Tablets**
+- **POST /tablets**: Criar um novo tablet.
+- **GET /tablets**: Listar todos os tablets.
+- **GET /tablets/busca**: Buscar tablet por tombamento ou IMEI.
+- **PUT /tablets/:id**: Atualizar um tablet existente.
+- **DELETE /tablets/:id**: Deletar um tablet.
+
+### **Regionais**
+- **POST /regionais**: Criar uma nova regional.
+- **GET /regionais**: Listar todas as regionais.
+- **PUT /regionais/:id**: Atualizar uma regional existente.
+- **DELETE /regionais/:id**: Deletar uma regional.
+
+### **Empresas**
+- **POST /empresas**: Criar uma nova empresa.
+- **GET /empresas**: Listar todas as empresas.
+- **DELETE /empresas/:id**: Deletar uma empresa.
+
+### **Chamados**
+- **POST /chamados**: Criar um novo chamado.
+- **GET /chamados**: Listar todos os chamados.
+- **GET /chamados/atrasados**: Listar chamados atrasados.
+- **GET /chamados/gerar-os/:id/:tipo**: Gerar uma Ordem de Serviço (O.S.).
+- **GET /chamados/:id**: Listar chamado por tablet.
+- **GET /chamados/id/:id**: Buscar chamado por ID.
+- **PUT /chamados/:id**: Atualizar um chamado existente.
+- **DELETE /chamados/:id**: Deletar um chamado.
+- **PATCH /chamados/:id/fechar**: Fechar um chamado.
+
+## **9. Configuração do Ambiente**
+
+1. Clone o repositório.
+2. Configure o arquivo `.env` com as credenciais do banco de dados:
+   ```env
+   DB_HOST=localhost
+   DB_USER=root
+   DB_PASSWORD=
+   DB_NAME=systab
+   ```
+3. Instale as dependências do backend:
+   ```bash
+   npm install
+   ```
+4. Inicie o servidor:
+   ```bash
+   npx nodemon src/index.js
+   ```
+
+## **10. Testes**
+
+Utilize ferramentas como **Postman** ou **Insomnia** para testar as rotas da API. Certifique-se de que o banco de dados esteja configurado corretamente e que o servidor esteja em execução.
+
+## **11. Contribuição**
+
+Contribuições são bem-vindas! Sinta-se à vontade para abrir issues ou pull requests para melhorias.

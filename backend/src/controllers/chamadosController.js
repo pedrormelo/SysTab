@@ -125,7 +125,7 @@ exports.gerarOS = (req, res) => {
             usuarios.nomeUser, usuarios.telUser, usuarios.cpf, 
             unidades.nomeUnidade, 
             regionais.numReg AS nomeRegional, 
-            empresas.nomeEmp
+            empresas.nomeEmp, empresas.idEmp
         FROM chamados
         JOIN tablets ON chamados.idTab = tablets.idTab
         JOIN usuarios ON tablets.idUser = usuarios.idUser
@@ -171,7 +171,7 @@ exports.gerarOS = (req, res) => {
             imei: data.imei,
             regional: data.nomeRegional,
             unidade: data.nomeUnidade,
-            empresa: data.nomeEmp,
+            empresa: data.idEmp,
             item: data.item,
             idChamado: data.idChamado,
             descricao: data.descricao,
