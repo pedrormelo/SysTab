@@ -1,36 +1,76 @@
 const db = require('../config/db');
-const PDFDocument = require('pdfkit');
+const path = require('path');
+const fs = require('fs');
+const PizZip = require('pizzip');
+const Docxtemplater = require('docxtemplater');
 const { format } = require('date-fns');
 const { ptBR } = require('date-fns/locale');
 
-// Criar novo chamado
-exports.criarChamado = async (req, res) => {
-    const { idTablet, problema, itens_recebidos } = req.body;
-    try {
-        const [tablet] = await db.query('SELECT * FROM tablets WHERE id = ?', [idTablet]);
-        if (tablet.length === 0) return res.status(404).json({ message: 'Tablet não encontrado.' });
-
-        const [result] = await db.query(
-            'INSERT INTO chamados (idTablet, problema, itens_recebidos) VALUES (?, ?, ?)',
-            [idTablet, problema, itens_recebidos]
-        );
-        res.status(201).json({ message: 'Chamado criado com sucesso.', id: result.insertId });
-    } catch (err) {
-        res.status(500).json({ message: 'Erro ao criar chamado.', error: err });
-    }
+exports.listarChamados = (req, res) => {
+    const sql = `
+        SELECT chamados.*, tablets.tombamento, tablets.modelo, tablets.imei, usuarios.nomeUser, usuarios.telUser
+        FROM chamados
+        JOIN tablets ON chamados.idTab = tablets.idTab
+        JOIN usuarios ON tablets.idUser = usuarios.idUser
+    `;
+    db.query(sql, (err, results) => {
+        if (err) return res.status(500).json(err);
+        res.json(results);
+    });
 };
 
-// Listar todos os chamados
-exports.listarChamado = async (req, res) => {
+exports.buscarChamadoPorIdChamado = (req, res) => {
+    const { id } = req.params;
+    const sql = `
+        SELECT chamados.*, tablets.*, usuarios.nomeUser, usuarios.telUser, unidades.nomeUnidade, regionais.numReg AS nomeRegional, empresas.nomeEmp
+        FROM chamados
+        JOIN tablets ON chamados.idTab = tablets.idTab
+        JOIN usuarios ON tablets.idUser = usuarios.idUser
+        JOIN unidades ON tablets.idUnidade = unidades.idUnidade
+        JOIN regionais ON unidades.idReg = regionais.idReg
+        JOIN empresas ON tablets.idEmp = empresas.idEmp
+        WHERE chamados.idChamado = ?
+    `;
+    db.query(sql, [id], (err, results) => {
+        if (err) return res.status(500).json(err);
+        if (results.length === 0) return res.status(404).json({ mensagem: 'Chamado não encontrado' });
+        res.json(results[0]);
+    });
+};
+
+exports.criarChamado = (req, res) => {
+    const { idTab, problema, item } = req.body;
+    const sql = 'INSERT INTO chamados (idTab, problema, item, situacao, dataAbertura) VALUES (?, ?, ?, "Pendente", NOW())';
+    db.query(sql, [idTab, problema, item], (err, result) => {
+        if (err) return res.status(500).json(err);
+        res.status(201).json({ idChamado: result.insertId });
+    });
+};
+
+exports.fecharChamado = (req, res) => {
+    const { id } = req.params;
+    const sql = 'UPDATE chamados SET situacao = "Concluído", dataFechamento = NOW() WHERE idChamado = ?';
+    db.query(sql, [id], (err) => {
+        if (err) return res.status(500).json(err);
+        res.json({ mensagem: 'Chamado fechado com sucesso' });
+    });
+};
+
+exports.listarChamadosAtrasados = async (req, res) => {
+    const dias = parseInt(req.query.dias) || 7;
     try {
-        const [rows] = await db.query('SELECT * FROM chamados');
+        const [rows] = await db.query(
+            `SELECT * FROM chamados 
+            WHERE status = 'Aberto' AND dataEntrada < DATE_SUB(NOW(), INTERVAL ? DAY)`,
+            [dias]
+        );
         res.json(rows);
     } catch (err) {
-        res.status(500).json({ message: 'Erro ao buscar chamados.', error: err });
+        res.status(500).json({ message: 'Erro ao buscar chamados antigos.', error: err });
     }
 };
 
-// Listar chamados por tablet
+
 exports.listarChamadoPorTablet = async (req, res) => {
     const { idTablet } = req.params;
     try {
@@ -56,20 +96,6 @@ exports.atualizarChamado = async (req, res) => {
     }
 };
 
-// Fechar chamado
-exports.atualizarStatus = async (req, res) => {
-    const { id } = req.params;
-    try {
-        await db.query(
-            'UPDATE chamados SET status = "Fechado", dataSaida = NOW() WHERE id = ?',
-            [id]
-        );
-        res.json({ message: 'Chamado fechado com sucesso.' });
-    } catch (err) {
-        res.status(500).json({ message: 'Erro ao fechar chamado.', error: err });
-    }
-};
-
 // Deletar chamado
 exports.deletarChamado = async (req, res) => {
     const { id } = req.params;
@@ -81,87 +107,91 @@ exports.deletarChamado = async (req, res) => {
     }
 };
 
-// Listar chamados abertos há mais de X dias
-exports.listarChamadosAtrasados = async (req, res) => {
-    const dias = parseInt(req.query.dias) || 7;
-    try {
-        const [rows] = await db.query(
-            `SELECT * FROM chamados 
-            WHERE status = 'Aberto' AND dataEntrada < DATE_SUB(NOW(), INTERVAL ? DAY)`,
-            [dias]
-        );
-        res.json(rows);
-    } catch (err) {
-        res.status(500).json({ message: 'Erro ao buscar chamados antigos.', error: err });
-    }
-};
 
-// Buscar chamado pelo ID do chamado
-exports.buscarChamadoPorIdChamado = async (req, res) => {
-    const { id } = req.params;
-    try {
-        const [rows] = await db.query('SELECT * FROM chamados WHERE id = ?', [id]);
-        if (rows.length === 0) {
-            return res.status(404).json({ message: 'Chamado não encontrado.' });
+exports.gerarOS = (req, res) => {
+    const { id, tipo } = req.params;
+    const caminhoModelo = path.join(__dirname, `../../templates/template${tipo.toUpperCase()}.docx`);
+
+    if (!fs.existsSync(caminhoModelo)) {
+        return res.status(400).json({
+            erro: `Modelo de O.S. '${tipo.toUpperCase()}' não encontrado. Verifique se o arquivo 'template${tipo.toUpperCase()}.docx' existe na pasta templates.`
+        });
+    }
+
+    const sql = `
+        SELECT 
+            chamados.idChamado, chamados.descricao, chamados.dataEntrada, chamados.item,
+            tablets.idTomb, tablets.imei, 
+            usuarios.nomeUser, usuarios.telUser, usuarios.cpf, 
+            unidades.nomeUnidade, 
+            regionais.numReg AS nomeRegional, 
+            empresas.nomeEmp
+        FROM chamados
+        JOIN tablets ON chamados.idTab = tablets.idTab
+        JOIN usuarios ON tablets.idUser = usuarios.idUser
+        JOIN unidades ON tablets.idUnidade = unidades.idUnidade
+        JOIN regionais ON unidades.idReg = regionais.idReg
+        JOIN empresas ON tablets.idEmp = empresas.idEmp
+        WHERE chamados.idChamado = ?
+    `;
+
+    db.query(sql, [id], (err, results) => {
+        if (err) return res.status(500).json(err);
+        if (results.length === 0) return res.status(404).json({ mensagem: 'Chamado não encontrado' });
+
+        const data = results[0];
+
+        const conteudo = fs.readFileSync(caminhoModelo, 'binary');
+        const zip = new PizZip(conteudo);
+        const doc = new Docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
+
+        const meses = [
+            "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+            "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+        ];
+
+        const hoje = new Date();
+
+        const dataHoje = `Jaboatão dos Guararapes, ${hoje.getDate()} de ${meses[hoje.getMonth()]
+        } de ${hoje.getFullYear()}`;
+
+        const dia = format(hoje, 'dd', { locale: ptBR });
+        const mes = format(hoje, 'MMMM', { locale: ptBR });
+        const ano = format(hoje, 'yyyy', { locale: ptBR });
+
+        const dataToSet = {
+            dia,
+            mes,
+            ano,
+            dataHoje,
+            nomeUser: data.nomeUser,
+            telUser: data.telUser || '',
+            cpf: data.cpf,
+            tombamento: data.idTomb,
+            imei: data.imei,
+            regional: data.nomeRegional,
+            unidade: data.nomeUnidade,
+            empresa: data.nomeEmp,
+            item: data.item,
+            idChamado: data.idChamado,
+            descricao: data.descricao,
+            dataEntrada: data.dataEntrada
+                ? format(new Date(data.dataEntrada), 'dd/MM/yyyy', { locale: ptBR })
+                : 'Data não disponível', // Fallback value
+        };
+
+        try {
+            doc.render(dataToSet);
+        } catch (erro) {
+            return res.status(500).json({ erro: 'Erro ao renderizar documento', detalhes: erro });
         }
-        res.json(rows[0]);
-    } catch (err) {
-        res.status(500).json({ message: 'Erro ao buscar chamado.', error: err });
-    }
-};
 
+        const buffer = doc.getZip().generate({ type: 'nodebuffer' });
 
-// Gerar Ordem de Serviço (PDF)
-exports.gerarOS = async (req, res) => {
-    const { id } = req.params;
+        const nomeArquivo = `OS_${tipo.toUpperCase()}_${data.tombamento}_${Date.now()}.docx`;
+        const caminhoFinal = path.join(__dirname, `../../output/${nomeArquivo}`);
+        fs.writeFileSync(caminhoFinal, buffer);
 
-    try {
-        const [chamadoRows] = await db.query('SELECT * FROM chamados WHERE id = ?', [id]);
-        if (chamadoRows.length === 0) return res.status(404).json({ message: 'Chamado não encontrado.' });
-
-        const chamado = chamadoRows[0];
-
-        const [tabletRows] = await db.query(`
-            SELECT t.*, u.nome AS nome_unidade, r.nome AS nome_regional, e.nome AS nome_empresa
-            FROM tablets t
-            JOIN unidades u ON t.idUnidade = u.id
-            JOIN regionais r ON u.idRegional = r.id
-            JOIN empresas e ON t.idEmpresa = e.id
-            WHERE t.id = ?
-        `, [chamado.idTablet]);
-
-        if (tabletRows.length === 0) return res.status(404).json({ message: 'Tablet vinculado não encontrado.' });
-
-        const tablet = tabletRows[0];
-
-        const doc = new PDFDocument();
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `inline; filename="os_chamado_${id}.pdf"`);
-
-        doc.fontSize(20).text('Ordem de Serviço - Chamado de Tablet', { align: 'center' });
-        doc.moveDown();
-
-        const dataFormatada = format(new Date(chamado.dataEntrada), "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
-
-        doc.fontSize(12).text(`ID do Chamado: ${chamado.id}`);
-        doc.text(`Data de Entrada: ${dataFormatada}`);
-        doc.text(`Status: ${chamado.status}`);
-        doc.text(`Problema: ${chamado.problema}`);
-        doc.text(`Itens Recebidos: ${chamado.itens_recebidos ? 'Sim' : 'Não'}`);
-        doc.moveDown();
-
-        doc.text(`Tablet - Tombamento: ${tablet.tombamento}`);
-        doc.text(`Número de Série: ${tablet.ns}`);
-        doc.text(`Usuário: ${tablet.usuario}`);
-        doc.text(`Unidade: ${tablet.nome_unidade}`);
-        doc.text(`Regional: ${tablet.nome_regional}`);
-        doc.text(`Empresa: ${tablet.nome_empresa}`);
-
-        doc.end();
-        doc.pipe(res);
-
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Erro ao gerar Ordem de Serviço.', error: err });
-    }
+        res.download(caminhoFinal);
+    });
 };

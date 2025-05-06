@@ -1,4 +1,3 @@
-// filepath: /c:/Users/PC/Desktop/dev/servSTOCK/PayCheck!/PayCheck/src/config/db.js
 const mysql = require("mysql2");
 require("dotenv").config();
 
