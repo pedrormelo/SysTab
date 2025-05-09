@@ -1,11 +1,11 @@
 const db = require("../config/db");
 
 exports.criarRegional = (req, res) => {
-    const { nome } = req.body;
-    if (!nome) return res.status(400).json({ error: "Nome da regional é obrigatório." });
+    const { numReg } = req.body;
+    if (!numReg) return res.status(400).json({ error: "Número da regional é obrigatório." });
 
-    const sql = "INSERT INTO regionais (nome) VALUES (?)";
-    db.query(sql, [nome], (err, result) => {
+    const sql = "INSERT INTO regionais (numReg) VALUES (?)";
+    db.query(sql, [numReg], (err, result) => {
         if (err) return res.status(500).json({ error: "Erro ao criar regional." });
         res.status(201).json({ message: "Regional criada com sucesso.", idRegional: result.insertId });
     });

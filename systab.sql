@@ -3,11 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
-<<<<<<< HEAD
--- Tempo de geração: 02/05/2025 às 15:25
-=======
--- Tempo de geração: 22/02/2025 às 16:00
->>>>>>> 0dae163b15bf2a29f7de1e0cfe3cff3458b48cc4
+-- Tempo de geração: 07/05/2025 às 14:27
 -- Versão do servidor: 10.4.32-MariaDB
 -- Versão do PHP: 8.2.12
 
@@ -33,12 +29,20 @@ SET time_zone = "+00:00";
 
 CREATE TABLE `chamados` (
   `idChamado` int(11) NOT NULL,
-  `idTomb` int(11) NOT NULL,
+  `idTab` int(11) NOT NULL,
   `status` enum('Aberto','Fechado') NOT NULL,
-  `item` tinyint(1) NOT NULL,
+  `item` enum('Carregador','Carregador e Capinha','Capinha','Nenhum') DEFAULT NULL,
   `descricao` text DEFAULT NULL,
-  `dataEntrada` timestamp NOT NULL DEFAULT current_timestamp()
+  `dataEntrada` timestamp NOT NULL DEFAULT current_timestamp(),
+  `dataSaida` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Despejando dados para a tabela `chamados`
+--
+
+INSERT INTO `chamados` (`idChamado`, `idTab`, `status`, `item`, `descricao`, `dataEntrada`, `dataSaida`) VALUES
+(1, 1, 'Aberto', 'Carregador', 'teste test teste', '2025-05-06 18:30:38', NULL);
 
 -- --------------------------------------------------------
 
@@ -58,7 +62,8 @@ CREATE TABLE `empresas` (
 INSERT INTO `empresas` (`idEmp`, `nomeEmp`) VALUES
 (1, 'EVEREST'),
 (2, 'IBGE'),
-(3, 'TREMA');
+(3, 'TREMA'),
+(4, 'Nova Empresa');
 
 -- --------------------------------------------------------
 
@@ -91,27 +96,21 @@ INSERT INTO `regionais` (`idReg`, `numReg`) VALUES
 --
 
 CREATE TABLE `tablets` (
+  `idTab` int(11) NOT NULL,
   `idTomb` int(11) NOT NULL,
-<<<<<<< HEAD
   `imei` varchar(15) NOT NULL,
-=======
-  `imei` varchar(50) NOT NULL,
->>>>>>> 0dae163b15bf2a29f7de1e0cfe3cff3458b48cc4
   `idUser` int(11) NOT NULL,
   `idEmp` int(11) NOT NULL,
   `idUnidade` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-<<<<<<< HEAD
 --
 -- Despejando dados para a tabela `tablets`
 --
 
-INSERT INTO `tablets` (`idTomb`, `imei`, `idUser`, `idEmp`, `idUnidade`) VALUES
-(208474, '355637052256005', 4, 3, 4);
+INSERT INTO `tablets` (`idTab`, `idTomb`, `imei`, `idUser`, `idEmp`, `idUnidade`) VALUES
+(1, 208474, '355637052256005', 4, 3, 4);
 
-=======
->>>>>>> 0dae163b15bf2a29f7de1e0cfe3cff3458b48cc4
 -- --------------------------------------------------------
 
 --
@@ -251,12 +250,8 @@ INSERT INTO `unidades` (`idUnidade`, `nomeUnidade`, `idReg`) VALUES
 (120, 'USF BELO HORIZONTE', 1),
 (121, 'USF PACHECO', 2),
 (122, 'UBS  MARCOS FREIRE', 4),
-<<<<<<< HEAD
 (123, 'USF CURADO I - EQUIPE 2', 3),
 (124, 'Não Cadastrado', 1);
-=======
-(123, 'USF CURADO I - EQUIPE 2', 3);
->>>>>>> 0dae163b15bf2a29f7de1e0cfe3cff3458b48cc4
 
 -- --------------------------------------------------------
 
@@ -267,23 +262,21 @@ INSERT INTO `unidades` (`idUnidade`, `nomeUnidade`, `idReg`) VALUES
 CREATE TABLE `usuarios` (
   `idUser` int(11) NOT NULL,
   `cpf` varchar(14) NOT NULL,
-  `nomeUser` varchar(100) NOT NULL
+  `nomeUser` varchar(100) NOT NULL,
+  `telUser` varchar(20) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
-<<<<<<< HEAD
 -- Despejando dados para a tabela `usuarios`
 --
 
-INSERT INTO `usuarios` (`idUser`, `cpf`, `nomeUser`) VALUES
-(1, '04419980036', 'Pedro Augusto'),
-(2, '91380236010', 'Testador Oficial'),
-(3, '82019178044', 'cabeção'),
-(4, '0', 'Não Cadastrado');
+INSERT INTO `usuarios` (`idUser`, `cpf`, `nomeUser`, `telUser`) VALUES
+(1, '04419980036', 'Pedro Augusto', NULL),
+(2, '91380236010', 'Testador Oficial', NULL),
+(3, '82019178044', 'cabeção', NULL),
+(4, '0', 'Não Cadastrado', NULL);
 
 --
-=======
->>>>>>> 0dae163b15bf2a29f7de1e0cfe3cff3458b48cc4
 -- Índices para tabelas despejadas
 --
 
@@ -292,7 +285,7 @@ INSERT INTO `usuarios` (`idUser`, `cpf`, `nomeUser`) VALUES
 --
 ALTER TABLE `chamados`
   ADD PRIMARY KEY (`idChamado`),
-  ADD KEY `idTomb` (`idTomb`);
+  ADD KEY `idTab` (`idTab`);
 
 --
 -- Índices de tabela `empresas`
@@ -310,8 +303,9 @@ ALTER TABLE `regionais`
 -- Índices de tabela `tablets`
 --
 ALTER TABLE `tablets`
-  ADD PRIMARY KEY (`idTomb`),
+  ADD PRIMARY KEY (`idTab`),
   ADD UNIQUE KEY `imei` (`imei`),
+  ADD UNIQUE KEY `idTomb` (`idTomb`),
   ADD KEY `idUser` (`idUser`),
   ADD KEY `idEmp` (`idEmp`),
   ADD KEY `idUnidade` (`idUnidade`);
@@ -338,33 +332,31 @@ ALTER TABLE `usuarios`
 -- AUTO_INCREMENT de tabela `chamados`
 --
 ALTER TABLE `chamados`
-  MODIFY `idChamado` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `idChamado` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT de tabela `empresas`
 --
 ALTER TABLE `empresas`
-  MODIFY `idEmp` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `idEmp` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+
+--
+-- AUTO_INCREMENT de tabela `tablets`
+--
+ALTER TABLE `tablets`
+  MODIFY `idTab` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT de tabela `unidades`
 --
 ALTER TABLE `unidades`
-<<<<<<< HEAD
   MODIFY `idUnidade` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=125;
-=======
-  MODIFY `idUnidade` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=124;
->>>>>>> 0dae163b15bf2a29f7de1e0cfe3cff3458b48cc4
 
 --
 -- AUTO_INCREMENT de tabela `usuarios`
 --
 ALTER TABLE `usuarios`
-<<<<<<< HEAD
   MODIFY `idUser` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
-=======
-  MODIFY `idUser` int(11) NOT NULL AUTO_INCREMENT;
->>>>>>> 0dae163b15bf2a29f7de1e0cfe3cff3458b48cc4
 
 --
 -- Restrições para tabelas despejadas
@@ -374,7 +366,7 @@ ALTER TABLE `usuarios`
 -- Restrições para tabelas `chamados`
 --
 ALTER TABLE `chamados`
-  ADD CONSTRAINT `chamados_ibfk_1` FOREIGN KEY (`idTomb`) REFERENCES `tablets` (`idTomb`);
+  ADD CONSTRAINT `chamados_ibfk_1` FOREIGN KEY (`idTab`) REFERENCES `tablets` (`idTab`);
 
 --
 -- Restrições para tabelas `tablets`

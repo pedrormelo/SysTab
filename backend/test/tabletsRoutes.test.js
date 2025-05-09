@@ -25,11 +25,11 @@ describe('Tablets Routes', () => {
     const response = await request(app)
       .post('/tablets')
       .send({
-        tombamento: '12345',
+        idTomb: '12345',
         imei: '123456789012345',
-        idUsuario: 1,
+        idUser: 1,
         idUnidade: 1,
-        idEmpresa: 1
+        idEmp: 1
       });
 
     expect(response.status).toBe(201);

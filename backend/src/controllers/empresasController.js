@@ -8,7 +8,7 @@ exports.criarEmpresa = (req, res) => {
         return res.status(400).json({ error: "Nome da empresa é obrigatório." });
     }
 
-    const sql = "INSERT INTO empresas (nome) VALUES (?)";
+    const sql = "INSERT INTO empresas (nomeEmp) VALUES (?)";
 
     db.query(sql, [nome], (err, result) => {
         if (err) {

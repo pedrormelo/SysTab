@@ -33,10 +33,11 @@ beforeAll(async () => {
   });
 });
 
-afterAll(() => {
-  server.close(() => {
+afterAll(async () => {
+  if (server) {
+    await new Promise((resolve) => server.close(resolve));
     console.log('Test server closed.');
-  });
+  }
 });
 
 describe('Basic Test', () => {

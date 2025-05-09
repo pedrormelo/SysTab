@@ -6,11 +6,25 @@ const Docxtemplater = require('docxtemplater');
 const { format } = require('date-fns');
 const { ptBR } = require('date-fns/locale');
 
+exports.criarChamado = (req, res) => {
+    const { idTab, descricao, item } = req.body;
+    const sql = 'INSERT INTO chamados (idTab, descricao, item, status, dataEntrada) VALUES (?, ?, ?, "Aberto", NOW())';
+
+    db.query(sql, [idTab, descricao, item], (err, result) => {
+        if (err) {
+            console.error("Error creating chamado:", err);
+            return res.status(500).json({ error: "Erro ao criar chamado." });
+        }
+
+        res.status(201).json({ message: "Chamado criado com sucesso.", idChamado: result.insertId });
+    });
+};
+
 exports.listarChamados = (req, res) => {
     const sql = `
-        SELECT chamados.*, tablets.tombamento, tablets.modelo, tablets.imei, usuarios.nomeUser, usuarios.telUser
+        SELECT chamados.*, tablets.idTomb, tablets.imei, usuarios.nomeUser, usuarios.telUser
         FROM chamados
-        JOIN tablets ON chamados.idTab = tablets.idTab
+        JOIN tablets ON chamados.idTab = tablets.idTomb
         JOIN usuarios ON tablets.idUser = usuarios.idUser
     `;
     db.query(sql, (err, results) => {
@@ -38,24 +52,6 @@ exports.buscarChamadoPorIdChamado = (req, res) => {
     });
 };
 
-exports.criarChamado = (req, res) => {
-    const { idTab, problema, item } = req.body;
-    const sql = 'INSERT INTO chamados (idTab, problema, item, situacao, dataAbertura) VALUES (?, ?, ?, "Pendente", NOW())';
-    db.query(sql, [idTab, problema, item], (err, result) => {
-        if (err) return res.status(500).json(err);
-        res.status(201).json({ idChamado: result.insertId });
-    });
-};
-
-exports.fecharChamado = (req, res) => {
-    const { id } = req.params;
-    const sql = 'UPDATE chamados SET situacao = "Concluído", dataFechamento = NOW() WHERE idChamado = ?';
-    db.query(sql, [id], (err) => {
-        if (err) return res.status(500).json(err);
-        res.json({ mensagem: 'Chamado fechado com sucesso' });
-    });
-};
-
 exports.listarChamadosAtrasados = async (req, res) => {
     const dias = parseInt(req.query.dias) || 7;
     try {
@@ -74,39 +70,79 @@ exports.listarChamadosAtrasados = async (req, res) => {
 exports.listarChamadoPorTablet = async (req, res) => {
     const { idTablet } = req.params;
     try {
-        const [rows] = await db.query('SELECT * FROM chamados WHERE idTablet = ?', [idTablet]);
+        const [rows] = await db.query('SELECT * FROM chamados WHERE idTab = ?', [idTablet]);
         res.json(rows);
     } catch (err) {
         res.status(500).json({ message: 'Erro ao buscar chamados por tablet.', error: err });
     }
 };
 
-// Atualizar chamado
-exports.atualizarChamado = async (req, res) => {
-    const { id } = req.params;
-    const { problema, itens_recebidos } = req.body;
-    try {
-        await db.query(
-            'UPDATE chamados SET problema = ?, itens_recebidos = ? WHERE id = ?',
-            [problema, itens_recebidos, id]
-        );
-        res.json({ message: 'Chamado atualizado com sucesso.' });
-    } catch (err) {
-        res.status(500).json({ message: 'Erro ao atualizar chamado.', error: err });
-    }
-};
-
 // Deletar chamado
-exports.deletarChamado = async (req, res) => {
+exports.deletarChamado = (req, res) => {
     const { id } = req.params;
-    try {
-        await db.query('DELETE FROM chamados WHERE id = ?', [id]);
-        res.json({ message: 'Chamado deletado com sucesso.' });
-    } catch (err) {
-        res.status(500).json({ message: 'Erro ao deletar chamado.', error: err });
-    }
+    const sql = 'DELETE FROM chamados WHERE idChamado = ?';
+
+    db.query(sql, [id], (err, result) => {
+        if (err) {
+            console.error("Error deleting chamado:", err);
+            return res.status(500).json({ error: "Erro ao deletar chamado." });
+        }
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: "Chamado não encontrado." });
+        }
+
+        res.json({ message: "Chamado deletado com sucesso." });
+    });
 };
 
+// Function to update a chamado
+exports.atualizarChamado = (req, res) => {
+    const { id } = req.params;
+    const { idTab, status, item, descricao, dataSaida } = req.body;
+
+    if (!idTab || !status) {
+        return res.status(400).json({ error: "ID do tablet e status são obrigatórios." });
+    }
+
+    const sql = `
+        UPDATE chamados 
+        SET idTab = ?, status = ?, item = ?, descricao = ?, dataSaida = ? 
+        WHERE idChamado = ?
+    `;
+
+    db.query(sql, [idTab, status, item, descricao, dataSaida, id], (err, result) => {
+        if (err) {
+            console.error("Erro ao atualizar chamado:", err);
+            return res.status(500).json({ error: "Erro ao atualizar chamado." });
+        }
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: "Chamado não encontrado." });
+        }
+
+        res.json({ message: "Chamado atualizado com sucesso." });
+    });
+};
+
+// Function to close a chamado
+exports.fecharChamado = (req, res) => {
+    const { id } = req.params;
+    const sql = 'UPDATE chamados SET status = "Fechado", dataSaida = NOW() WHERE idChamado = ?';
+
+    db.query(sql, [id], (err, result) => {
+        if (err) {
+            console.error("Erro ao fechar chamado:", err);
+            return res.status(500).json({ error: "Erro ao fechar chamado." });
+        }
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: "Chamado não encontrado." });
+        }
+
+        res.json({ message: "Chamado fechado com sucesso." });
+    });
+};
 
 exports.gerarOS = (req, res) => {
     const { id, tipo } = req.params;

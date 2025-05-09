@@ -2,11 +2,11 @@ const db = require("../config/db");
 
 // Criar usuário
 exports.criarUsuario = (req, res) => {
-    const { nome } = req.body;
-    if (!nome) return res.status(400).json({ error: "Nome do usuário é obrigatório." });
+    const { nomeUser, cpf, telUser } = req.body;
+    if (!nomeUser || !cpf) return res.status(400).json({ error: "Nome e CPF do usuário são obrigatórios." });
 
-    const sql = "INSERT INTO usuarios (nome) VALUES (?)";
-    db.query(sql, [nome], (err, result) => {
+    const sql = "INSERT INTO usuarios (nomeUser, cpf, telUser) VALUES (?, ?, ?)";
+    db.query(sql, [nomeUser, cpf, telUser], (err, result) => {
         if (err) return res.status(500).json({ error: "Erro ao criar usuário." });
         res.status(201).json({ message: "Usuário criado com sucesso.", idUsuario: result.insertId });
     });
@@ -14,7 +14,7 @@ exports.criarUsuario = (req, res) => {
 
 // Listar usuários
 exports.listarUsuarios = (req, res) => {
-    db.query("SELECT * FROM usuarios", (err, result) => {
+    db.query("SELECT idUser, nomeUser, cpf, telUser FROM usuarios", (err, result) => {
         if (err) return res.status(500).json({ error: "Erro ao listar usuários." });
         res.json(result);
     });

@@ -30,7 +30,7 @@ app.use('/regionais', regRoutes);
 const PORT = process.env.PORT || 3001;
 
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+    console.log(`Servidor rodando na porta ${PORT}`);
 });
 
 module.exports = app;
