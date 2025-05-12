@@ -8,4 +8,7 @@ router.get("/busca", tabletsController.buscarTablet);
 router.put("/:id", tabletsController.editarTablet);
 router.delete("/:id", tabletsController.deletarTablet);
 
+console.log("Tablets Routes Loaded");
+
 module.exports = router;
+
