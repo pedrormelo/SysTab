@@ -23,19 +23,27 @@ exports.listarUsuarios = (req, res) => {
 // Editar usuário
 exports.editarUsuario = (req, res) => {
     const { id } = req.params;
-    const { nome } = req.body;
-    const sql = "UPDATE usuarios SET nome = ? WHERE idUsuario = ?";
+    const { nomeUser, cpf, telUser } = req.body;
 
-    db.query(sql, [nome, id], (err, result) => {
-        if (err) return res.status(500).json({ error: "Erro ao atualizar usuário." });
+    if (!nomeUser || !cpf) {
+        return res.status(400).json({ error: "Nome e CPF são obrigatórios." });
+    }
+
+    const sql = "UPDATE usuarios SET nomeUser = ?, cpf = ?, telUser = ? WHERE idUser = ?";
+    db.query(sql, [nomeUser, cpf, telUser, id], (err, result) => {
+        if (err) {
+            console.error("Erro ao atualizar usuário:", err);
+            return res.status(500).json({ error: "Erro ao atualizar usuário." });
+        }
         res.json({ message: "Usuário atualizado com sucesso." });
     });
 };
 
+
 // Deletar usuário
 exports.deletarUsuario = (req, res) => {
     const { id } = req.params;
-    db.query("DELETE FROM usuarios WHERE idUsuario = ?", [id], (err, result) => {
+    db.query("DELETE FROM usuarios WHERE idUser = ?", [id], (err, result) => {
         if (err) return res.status(500).json({ error: "Erro ao deletar usuário." });
         res.json({ message: "Usuário deletado com sucesso." });
     });

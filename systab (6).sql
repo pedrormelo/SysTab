@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Tempo de geração: 07/05/2025 às 14:27
+-- Tempo de geração: 23/05/2025 às 20:42
 -- Versão do servidor: 10.4.32-MariaDB
 -- Versão do PHP: 8.2.12
 
@@ -42,7 +42,9 @@ CREATE TABLE `chamados` (
 --
 
 INSERT INTO `chamados` (`idChamado`, `idTab`, `status`, `item`, `descricao`, `dataEntrada`, `dataSaida`) VALUES
-(1, 1, 'Aberto', 'Carregador', 'teste test teste', '2025-05-06 18:30:38', NULL);
+(1, 1, 'Aberto', 'Carregador', 'teste test teste', '2025-05-06 18:30:38', NULL),
+(2, 1, 'Aberto', 'Carregador', NULL, '2025-05-07 13:28:15', NULL),
+(3, 1, 'Aberto', 'Carregador', NULL, '2025-05-07 13:30:55', NULL);
 
 -- --------------------------------------------------------
 
@@ -63,7 +65,9 @@ INSERT INTO `empresas` (`idEmp`, `nomeEmp`) VALUES
 (1, 'EVEREST'),
 (2, 'IBGE'),
 (3, 'TREMA'),
-(4, 'Nova Empresa');
+(4, 'Nova Empresa'),
+(5, 'Nova Empresa'),
+(6, 'Nova Empresa');
 
 -- --------------------------------------------------------
 
@@ -99,9 +103,9 @@ CREATE TABLE `tablets` (
   `idTab` int(11) NOT NULL,
   `idTomb` int(11) NOT NULL,
   `imei` varchar(15) NOT NULL,
-  `idUser` int(11) NOT NULL,
+  `idUser` int(11) DEFAULT NULL,
   `idEmp` int(11) NOT NULL,
-  `idUnidade` int(11) NOT NULL
+  `idUnidade` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -109,7 +113,8 @@ CREATE TABLE `tablets` (
 --
 
 INSERT INTO `tablets` (`idTab`, `idTomb`, `imei`, `idUser`, `idEmp`, `idUnidade`) VALUES
-(1, 208474, '355637052256005', 4, 3, 4);
+(1, 208474, '355637052256005', 4, 3, 4),
+(2, 12345, '123456789012345', 7, 1, 1);
 
 -- --------------------------------------------------------
 
@@ -251,7 +256,7 @@ INSERT INTO `unidades` (`idUnidade`, `nomeUnidade`, `idReg`) VALUES
 (121, 'USF PACHECO', 2),
 (122, 'UBS  MARCOS FREIRE', 4),
 (123, 'USF CURADO I - EQUIPE 2', 3),
-(124, 'Não Cadastrado', 1);
+(128, 'USF QUADROS III', 1);
 
 -- --------------------------------------------------------
 
@@ -271,10 +276,9 @@ CREATE TABLE `usuarios` (
 --
 
 INSERT INTO `usuarios` (`idUser`, `cpf`, `nomeUser`, `telUser`) VALUES
-(1, '04419980036', 'Pedro Augusto', NULL),
-(2, '91380236010', 'Testador Oficial', NULL),
-(3, '82019178044', 'cabeção', NULL),
-(4, '0', 'Não Cadastrado', NULL);
+(3, '123.456.789-01', 'cabeção II', ''),
+(4, '0', 'Não Cadastrado', NULL),
+(7, '000.000.000-00', 'Pedro Augusto', '(81) 99999-9999');
 
 --
 -- Índices para tabelas despejadas
@@ -332,31 +336,31 @@ ALTER TABLE `usuarios`
 -- AUTO_INCREMENT de tabela `chamados`
 --
 ALTER TABLE `chamados`
-  MODIFY `idChamado` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `idChamado` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT de tabela `empresas`
 --
 ALTER TABLE `empresas`
-  MODIFY `idEmp` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `idEmp` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT de tabela `tablets`
 --
 ALTER TABLE `tablets`
-  MODIFY `idTab` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `idTab` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT de tabela `unidades`
 --
 ALTER TABLE `unidades`
-  MODIFY `idUnidade` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=125;
+  MODIFY `idUnidade` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=129;
 
 --
 -- AUTO_INCREMENT de tabela `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `idUser` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `idUser` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- Restrições para tabelas despejadas
@@ -372,6 +376,8 @@ ALTER TABLE `chamados`
 -- Restrições para tabelas `tablets`
 --
 ALTER TABLE `tablets`
+  ADD CONSTRAINT `fk_unidade` FOREIGN KEY (`idUnidade`) REFERENCES `unidades` (`idUnidade`) ON DELETE SET NULL,
+  ADD CONSTRAINT `fk_usuario` FOREIGN KEY (`idUser`) REFERENCES `usuarios` (`idUser`) ON DELETE SET NULL,
   ADD CONSTRAINT `tablets_ibfk_1` FOREIGN KEY (`idUser`) REFERENCES `usuarios` (`idUser`),
   ADD CONSTRAINT `tablets_ibfk_2` FOREIGN KEY (`idEmp`) REFERENCES `empresas` (`idEmp`),
   ADD CONSTRAINT `tablets_ibfk_3` FOREIGN KEY (`idUnidade`) REFERENCES `unidades` (`idUnidade`);

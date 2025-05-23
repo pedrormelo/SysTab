@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { ArrowLeft, Save } from "lucide-react"
@@ -39,45 +39,21 @@ export default function EditarTablet({ params }: { params: { id: string } }) {
   const [empresa, setEmpresa] = useState(tabletOriginal.empresa)
   const [usuario, setUsuario] = useState(tabletOriginal.usuario)
   const [unidade, setUnidade] = useState(tabletOriginal.unidade)
-  const [regional, setRegional] = useState("")
-
-  // Efeito para carregar os dados do tablet com base no ID
-  useEffect(() => {
-    // Simulação de carregamento de dados
-    // Em um ambiente real, isso seria uma chamada de API
-    const tabletId = Number.parseInt(params.id)
-    if (tabletId === 1) {
-      setTombamento(tabletOriginal.tombamento)
-      setImei(tabletOriginal.imei)
-      setModelo(tabletOriginal.modelo)
-      setEmpresa(tabletOriginal.empresa)
-      setUsuario(tabletOriginal.usuario)
-      setUnidade(tabletOriginal.unidade)
-    }
-  }, [params.id])
+  const [regional, setRegional] = useState(tabletOriginal.regional)
 
   // Listas de exemplo
   const modelos = ["Samsung Galaxy Tab A7", "Samsung Galaxy Tab S6", "iPad 8ª Geração", "Lenovo Tab M10"]
   const empresas = ["EVEREST", "NEXUS", "TECH SOLUTIONS"]
   const usuarios = ["João Silva", "Maria Santos", "Carlos Oliveira", "Ana Pereira", "Paulo Mendes", "Fernanda Lima"]
-
-  // Dados de unidades com suas respectivas regionais
-  const unidadesData = [
-    { nome: "USF ALTO DOIS CARNEIROS", regional: "Regional 2" },
-    { nome: "USF PRAZERES", regional: "Regional 1" },
-    { nome: "USF CAVALEIRO", regional: "Regional 3" },
-    { nome: "USF MURIBECA", regional: "Regional 2" },
-    { nome: "USF JARDIM JORDÃO", regional: "Regional 1" },
-    { nome: "USF BARRA DE JANGADA", regional: "Regional 3" },
+  const unidades = [
+    "USF ALTO DOIS CARNEIROS",
+    "USF PRAZERES",
+    "USF CAVALEIRO",
+    "USF MURIBECA",
+    "USF JARDIM JORDÃO",
+    "USF BARRA DE JANGADA",
   ]
-
-  // Atualizar a regional quando a unidade mudar
-  useEffect(() => {
-    const unidadeSelecionada = unidadesData.find((u) => u.nome === unidade)
-    if (unidadeSelecionada) {
-      setRegional(unidadeSelecionada.regional)
-    }
-  }, [unidade])
+  const regionais = ["Regional 1", "Regional 2", "Regional 3"]
 
   // Formatar IMEI
   const formatIMEI = (value: string) => {
@@ -92,7 +68,7 @@ export default function EditarTablet({ params }: { params: { id: string } }) {
     e.preventDefault()
 
     // Validação básica
-    if (!tombamento || !imei || !modelo || !empresa || !usuario || !unidade) {
+    if (!tombamento || !imei || !modelo || !empresa || !usuario || !unidade || !regional) {
       toast({
         title: "Erro ao salvar",
         description: "Preencha todos os campos obrigatórios",
@@ -244,9 +220,9 @@ export default function EditarTablet({ params }: { params: { id: string } }) {
                           <SelectValue placeholder="Selecione a unidade" />
                         </SelectTrigger>
                         <SelectContent>
-                          {unidadesData.map((unid) => (
-                            <SelectItem key={unid.nome} value={unid.nome}>
-                              {unid.nome}
+                          {unidades.map((unid) => (
+                            <SelectItem key={unid} value={unid}>
+                              {unid}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -255,10 +231,20 @@ export default function EditarTablet({ params }: { params: { id: string } }) {
 
                     <div className="space-y-2">
                       <Label htmlFor="regional" className="text-gray-700">
-                        Regional
+                        Regional <span className="text-red-500">*</span>
                       </Label>
-                      <Input id="regional" value={regional} className="border-gray-200 bg-gray-50" disabled />
-                      <p className="text-xs text-gray-500">A regional é determinada pela unidade selecionada</p>
+                      <Select value={regional} onValueChange={setRegional} required>
+                        <SelectTrigger id="regional" className="border-gray-200">
+                          <SelectValue placeholder="Selecione a regional" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {regionais.map((reg) => (
+                            <SelectItem key={reg} value={reg}>
+                              {reg}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 

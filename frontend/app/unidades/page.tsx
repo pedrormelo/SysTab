@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Search, Plus, Trash2, Filter } from "lucide-react"
@@ -24,6 +24,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import api from "@/lib/api"
+
+interface Unidade {
+  id: number;
+  nome: string;
+  regional: string;
+  qtdTablets: number;
+}
 
 export default function Unidades() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -33,48 +41,31 @@ export default function Unidades() {
   const [semTabletsFilter, setSemTabletsFilter] = useState(false)
   const [unitToDelete, setUnitToDelete] = useState<number | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [unidades, setUnidades] = useState<Unidade[]>([])
   const tableRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
 
-  // Dados de exemplo
-  const unidades = [
-    {
-      id: 1,
-      nome: "USF ALTO DOIS CARNEIROS",
-      regional: "Regional 2",
-      qtdTablets: 3,
-    },
-    {
-      id: 2,
-      nome: "USF PRAZERES",
-      regional: "Regional 1",
-      qtdTablets: 5,
-    },
-    {
-      id: 3,
-      nome: "USF CAVALEIRO",
-      regional: "Regional 3",
-      qtdTablets: 2,
-    },
-    {
-      id: 4,
-      nome: "USF MURIBECA",
-      regional: "Regional 2",
-      qtdTablets: 4,
-    },
-    {
-      id: 5,
-      nome: "USF JARDIM JORDÃO",
-      regional: "Regional 1",
-      qtdTablets: 0,
-    },
-    {
-      id: 6,
-      nome: "USF BARRA DE JANGADA",
-      regional: "Regional 3",
-      qtdTablets: 6,
-    },
-  ]
+  useEffect(() => {
+    api.get("/unidades")
+      .then((res: any) => {
+        const data = Array.isArray(res.data)
+          ? res.data.map((u: any) => ({
+              id: u.idUnidade || u.id || 0,
+              nome: u.nomeUnidade || u.nome || "",
+              regional: u.regional || "",
+              qtdTablets: u.qtdTablets ?? 0,
+            }))
+          : [];
+        setUnidades(data);
+      })
+      .catch(() => {
+        toast({
+          title: "Erro ao carregar unidades",
+          description: "Não foi possível obter as unidades do servidor.",
+          variant: "destructive",
+        })
+      })
+  }, [])
 
   // Listas únicas para os filtros
   const regionais = [...new Set(unidades.map((unidade) => unidade.regional))]
@@ -123,13 +114,23 @@ export default function Unidades() {
     setIsDeleteDialogOpen(true)
   }
 
-  const confirmDelete = () => {
-    // Lógica para excluir a unidade
-    toast({
-      title: "Unidade excluída",
-      description: `A unidade #${unitToDelete} foi excluída com sucesso`,
-      variant: "success",
-    })
+  const confirmDelete = async () => {
+    if (!unitToDelete) return;
+    try {
+      await api.delete(`/unidades/${unitToDelete}`)
+      toast({
+        title: "Unidade excluída",
+        description: `A unidade #${unitToDelete} foi excluída com sucesso`,
+        variant: "info",
+      })
+      setUnidades((prev) => prev.filter((u) => u.id !== unitToDelete))
+    } catch (err) {
+      toast({
+        title: "Erro ao excluir unidade",
+        description: "Não foi possível excluir a unidade.",
+        variant: "destructive",
+      })
+    }
     setIsDeleteDialogOpen(false)
     setUnitToDelete(null)
   }

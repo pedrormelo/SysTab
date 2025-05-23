@@ -14,23 +14,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Navbar } from "../../components/layout/navbar"
 import { Footer } from "../../components/layout/footer"
 import { useToast } from "@/hooks/use-toast"
+import api from "@/lib/api"
 
 export default function NovoUsuario() {
   const [nome, setNome] = useState("")
   const [cpf, setCpf] = useState("")
   const [telefone, setTelefone] = useState("")
-  const [unidade, setUnidade] = useState("")
   const { toast } = useToast()
-
-  // Lista de unidades
-  const unidades = [
-    "USF ALTO DOIS CARNEIROS",
-    "USF PRAZERES",
-    "USF CAVALEIRO",
-    "USF MURIBECA",
-    "USF JARDIM JORDÃO",
-    "USF BARRA DE JANGADA",
-  ]
 
   // Função para formatar CPF
   const formatCPF = (value: string) => {
@@ -64,11 +54,10 @@ export default function NovoUsuario() {
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Validação básica
-    if (!nome || !cpf || !unidade) {
+    if (!nome || !cpf ) {
       toast({
         title: "Erro ao salvar",
         description: "Preencha todos os campos obrigatórios",
@@ -77,7 +66,6 @@ export default function NovoUsuario() {
       return
     }
 
-    // Validar CPF (formato básico)
     if (cpf.length < 14) {
       toast({
         title: "CPF inválido",
@@ -87,18 +75,23 @@ export default function NovoUsuario() {
       return
     }
 
-    // Lógica para salvar o usuário
-    toast({
-      title: "Usuário cadastrado",
-      description: `O usuário ${nome} foi cadastrado com sucesso`,
-      variant: "success",
-    })
-
-    // Limpar formulário
-    setNome("")
-    setCpf("")
-    setTelefone("")
-    setUnidade("")
+    try {
+      await api.post("/usuarios", { nomeUser: nome, cpf, telUser: telefone })
+      toast({
+        title: "Usuário cadastrado",
+        description: `O usuário ${nome} foi cadastrado com sucesso`,
+        variant: "success",
+      })
+      setNome("")
+      setCpf("")
+      setTelefone("")
+    } catch (err) {
+      toast({
+        title: "Erro ao cadastrar usuário",
+        description: "Não foi possível cadastrar o usuário.",
+        variant: "destructive",
+      })
+    }
   }
 
   return (
@@ -175,23 +168,6 @@ export default function NovoUsuario() {
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="unidade" className="text-gray-700">
-                        Unidade <span className="text-red-500">*</span>
-                      </Label>
-                      <Select value={unidade} onValueChange={setUnidade} required>
-                        <SelectTrigger id="unidade" className="border-gray-200">
-                          <SelectValue placeholder="Selecione a unidade" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {unidades.map((unid) => (
-                            <SelectItem key={unid} value={unid}>
-                              {unid}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
                   </div>
 
                   <div className="pt-4">

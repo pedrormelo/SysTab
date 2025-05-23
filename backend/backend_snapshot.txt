@@ -1,0 +1,669 @@
+// --- backend/src/server.js ---
+const app = require('./index');
+
+const PORT = process.env.PORT || 3001;
+
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
+
+// --- backend/src/routes/usersRoutes.js ---
+const express = require("express");
+const router = express.Router();
+const usuariosController = require("../controllers/usersController");
+
+router.post("/", usuariosController.criarUsuario);
+router.get("/", usuariosController.listarUsuarios);
+router.put("/:id", usuariosController.editarUsuario);
+router.delete("/:id", usuariosController.deletarUsuario);
+
+console.log('Usuarios routes loaded!');
+
+module.exports = router;
+
+// --- backend/src/routes/unidadesRoutes.js ---
+const express = require("express");
+const router = express.Router();
+const unidadesController = require("../controllers/unidadesController");
+
+// router.post("/", unidadesController.cadastrarUnidade);
+router.get("/", unidadesController.listarUnidades);
+//router.put("/:id", unidadesController.editarUnidade);
+router.delete("/:id", unidadesController.deletarUnidade);
+
+console.log('Unidades routes loaded!');
+
+module.exports = router;
+
+// --- backend/src/routes/tabletsRoutes.js ---
+const express = require("express");
+const router = express.Router();
+const tabletsController = require("../controllers/tabletsController");
+
+router.post("/", tabletsController.criarTablet);
+router.get("/", tabletsController.listarTablets);
+router.get("/busca", tabletsController.buscarTablet);
+router.put("/:id", tabletsController.editarTablet);
+router.delete("/:id", tabletsController.deletarTablet);
+
+console.log("Tablets Routes Loaded");
+
+module.exports = router;
+
+// --- backend/src/routes/regRoutes.js ---
+const express = require("express");
+const router = express.Router();
+const regionaisController = require("../controllers/regionaisController");
+
+router.post("/", regionaisController.criarRegional);
+router.get("/", regionaisController.listarRegionais);
+router.put("/:id", regionaisController.editarRegional);
+router.delete("/:id", regionaisController.deletarRegional);
+
+console.log("Regionais Routes Loaded");
+
+module.exports = router;
+
+// --- backend/src/routes/empresasRoutes.js ---
+const express = require("express");
+const router = express.Router();
+const empresasController = require("../controllers/empresasController");
+
+router.post("/", empresasController.criarEmpresa);
+router.get("/", empresasController.listarEmpresas);
+router.delete("/:id", empresasController.deletarEmpresa);
+
+console.log("Empresas Routes Loaded");
+
+module.exports = router;
+
+// --- backend/src/routes/chamadosRoutes.js ---
+const express = require('express');
+const router = express.Router();
+const chamadosController = require('../controllers/chamadosController');
+
+router.post('/', chamadosController.criarChamado); 
+router.get('/atrasados', chamadosController.listarChamadosAtrasados); 
+router.get('/', chamadosController.listarChamados); 
+router.get('/gerar-os/:id/:tipo', chamadosController.gerarOS); 
+router.get('/:id', chamadosController.listarChamadoPorTablet); 
+router.get('/id/:id', chamadosController.buscarChamadoPorIdChamado); 
+router.put('/:id', chamadosController.atualizarChamado); 
+router.delete('/:id', chamadosController.deletarChamado); 
+router.patch('/:id/fechar', chamadosController.fecharChamado); 
+//router.get('/relatorio', chamadosController.gerarRelatorio);
+
+console.log('Chamados routes loaded!');
+
+module.exports = router;
+
+// --- backend/src/index.js ---
+require('dotenv').config();
+
+const express = require('express');
+const cors = require('cors');
+
+const tabletsRoutes = require('./routes/tabletsRoutes.js');
+const chamadosRoutes = require('./routes/chamadosRoutes.js');
+const empresasRoutes = require("./routes/empresasRoutes");
+const usersRoutes = require("./routes/usersRoutes");
+const unidadesRoutes = require("./routes/unidadesRoutes");
+const regRoutes = require("./routes/regRoutes");
+
+const app = express();
+
+app.use(cors({
+    origin: 'http://localhost:3000', //frontend url
+    credentials: true,
+}));
+
+app.use(express.json());
+
+//rotas
+app.use('/tablets', tabletsRoutes);
+app.use('/chamados', chamadosRoutes);
+app.use('/empresas', empresasRoutes);
+app.use('/usuarios', usersRoutes);
+app.use('/unidades', unidadesRoutes);
+app.use('/regionais', regRoutes);
+
+const PORT = process.env.PORT || 3001;
+
+app.listen(PORT, () => {
+    console.log(`Servidor rodando na porta ${PORT}`);
+});
+
+module.exports = app;
+
+// a vida é feita de escolhas, e eu so escolhi errado, talvez pelos erros da vida, talvez por ser humano
+// mas eu mão me arrependo de tudo que fiz, e de tudo que não fiz. apenas saia da matrix e viva a vida
+// como ela é, um jogo, onde o vencedor é quem mais se diverte.+ 
+
+//Por que escreveu isso?
+
+// --- backend/src/controllers/usersController.js ---
+const db = require("../config/db");
+
+// Criar usuário
+exports.criarUsuario = (req, res) => {
+    const { nomeUser, cpf, telUser } = req.body;
+    if (!nomeUser || !cpf) return res.status(400).json({ error: "Nome e CPF do usuário são obrigatórios." });
+
+    const sql = "INSERT INTO usuarios (nomeUser, cpf, telUser) VALUES (?, ?, ?)";
+    db.query(sql, [nomeUser, cpf, telUser], (err, result) => {
+        if (err) return res.status(500).json({ error: "Erro ao criar usuário." });
+        res.status(201).json({ message: "Usuário criado com sucesso.", idUsuario: result.insertId });
+    });
+};
+
+// Listar usuários
+exports.listarUsuarios = (req, res) => {
+    db.query("SELECT idUser, nomeUser, cpf, telUser FROM usuarios", (err, result) => {
+        if (err) return res.status(500).json({ error: "Erro ao listar usuários." });
+        res.json(result);
+    });
+};
+
+// Editar usuário
+exports.editarUsuario = (req, res) => {
+    const { id } = req.params;
+    const { nome } = req.body;
+    const sql = "UPDATE usuarios SET nome = ? WHERE idUsuario = ?";
+
+    db.query(sql, [nome, id], (err, result) => {
+        if (err) return res.status(500).json({ error: "Erro ao atualizar usuário." });
+        res.json({ message: "Usuário atualizado com sucesso." });
+    });
+};
+
+// Deletar usuário
+exports.deletarUsuario = (req, res) => {
+    const { id } = req.params;
+    db.query("DELETE FROM usuarios WHERE idUsuario = ?", [id], (err, result) => {
+        if (err) return res.status(500).json({ error: "Erro ao deletar usuário." });
+        res.json({ message: "Usuário deletado com sucesso." });
+    });
+};
+
+// --- backend/src/controllers/unidadesController.js ---
+const db = require("../config/db");
+
+exports.criarUnidade = (req, res) => {
+    const { nomeUnidade, idReg } = req.body;
+    if (!nomeUnidade || !idReg) return res.status(400).json({ error: "Nome da unidade e ID da regional são obrigatórios." });
+
+    const sql = "INSERT INTO unidades (nomeUnidade, idReg) VALUES (?, ?)";
+    db.query(sql, [nomeUnidade, idReg], (err, result) => {
+        if (err) return res.status(500).json({ error: "Erro ao criar unidade." });
+        res.status(201).json({ message: "Unidade criada com sucesso.", idUnidade: result.insertId });
+    });
+};
+
+exports.listarUnidades = (req, res) => {
+    db.query("SELECT unidades.*, regionais.numReg AS regional FROM unidades JOIN regionais ON unidades.idReg = regionais.idReg", (err, result) => {
+        if (err) return res.status(500).json({ error: "Erro ao listar unidades." });
+        res.json(result);
+    });
+};
+
+exports.editarUnidade = (req, res) => {
+    const { id } = req.params;
+    const { nome, idRegional } = req.body;
+    const sql = "UPDATE unidades SET nome = ?, idRegional = ? WHERE idUnidade = ?";
+
+    db.query(sql, [nome, idRegional, id], (err, result) => {
+        if (err) return res.status(500).json({ error: "Erro ao atualizar unidade." });
+        res.json({ message: "Unidade atualizada com sucesso." });
+    });
+};
+
+exports.deletarUnidade = (req, res) => {
+    const { id } = req.params;
+    db.query("DELETE FROM unidades WHERE idUnidade = ?", [id], (err, result) => {
+        if (err) return res.status(500).json({ error: "Erro ao deletar unidade." });
+        res.json({ message: "Unidade deletada com sucesso." });
+    });
+};
+
+// --- backend/src/controllers/tabletsController.js ---
+const db = require("../config/db");
+
+exports.criarTablet = (req, res) => {
+    const { idTomb, imei, idUser, idUnidade, idEmp } = req.body;
+
+    if (!idTomb || !imei || !idUser || !idUnidade || !idEmp) {
+        return res.status(400).json({ error: "Todos os campos são obrigatórios." });
+    }
+
+    const verificarSql = "SELECT * FROM tablets WHERE idUser = ?";
+    db.query(verificarSql, [idUser], (verifErr, verifResult) => {
+        if (verifErr) return res.status(500).json({ error: "Erro ao verificar usuário." });
+        if (verifResult.length > 0) {
+            return res.status(400).json({ error: "Este usuário já possui um tablet vinculado." });
+        }
+
+        const sql = "INSERT INTO tablets (idTomb, imei, idUser, idUnidade, idEmp) VALUES (?, ?, ?, ?, ?)";
+        db.query(sql, [idTomb, imei, idUser, idUnidade, idEmp], (err, result) => {
+            if (err) return res.status(500).json({ error: "Erro ao criar tablet." });
+            res.status(201).json({ message: "Tablet criado com sucesso.", idTablet: result.insertId });
+        });
+    });
+};
+
+exports.listarTablets = (req, res) => {
+    const sql = `
+        SELECT t.*, u.nomeUser AS usuario, un.nomeUnidade AS unidade, r.numReg AS regional, e.nomeEmp AS empresa
+        FROM tablets t
+        JOIN usuarios u ON t.idUser = u.idUser
+        JOIN unidades un ON t.idUnidade = un.idUnidade
+        JOIN regionais r ON un.idReg = r.idReg
+        JOIN empresas e ON t.idEmp = e.idEmp
+    `;
+
+    db.query(sql, (err, result) => {
+        if (err) return res.status(500).json({ error: "Erro ao listar tablets." });
+        res.json(result);
+    });
+};
+
+exports.buscarTablet = (req, res) => {
+    const { tombamento, imei } = req.query;
+
+    if (!tombamento && !imei) {
+        return res.status(400).json({ error: "Informe tombamento ou IMEI." });
+    }
+
+    const sql = `
+        SELECT t.*, u.nome AS usuario, un.nome AS unidade, r.nome AS regional, e.nome AS empresa
+        FROM tablets t
+        JOIN usuarios u ON t.idUsuario = u.idUsuario
+        JOIN unidades un ON t.idUnidade = un.idUnidade
+        JOIN regionais r ON un.idRegional = r.idRegional
+        JOIN empresas e ON t.idEmpresa = e.idEmpresa
+        WHERE t.tombamento = ? OR t.imei = ?
+    `;
+
+    db.query(sql, [tombamento, imei], (err, result) => {
+        if (err) return res.status(500).json({ error: "Erro na busca." });
+        res.json(result);
+    });
+};
+
+exports.editarTablet = (req, res) => {
+    const { id } = req.params;
+    const { tombamento, imei, idUsuario, idUnidade, idEmpresa } = req.body;
+
+    const verificarSql = "SELECT * FROM tablets WHERE idUsuario = ? AND idTablet != ?";
+    db.query(verificarSql, [idUsuario, id], (verifErr, verifResult) => {
+        if (verifErr) return res.status(500).json({ error: "Erro ao verificar usuário." });
+        if (verifResult.length > 0) {
+            return res.status(400).json({ error: "Este usuário já possui outro tablet vinculado." });
+        }
+
+        const sql = `
+            UPDATE tablets
+            SET tombamento = ?, imei = ?, idUsuario = ?, idUnidade = ?, idEmpresa = ?
+            WHERE idTablet = ?
+        `;
+
+        db.query(sql, [tombamento, imei, idUsuario, idUnidade, idEmpresa, id], (err, result) => {
+            if (err) return res.status(500).json({ error: "Erro ao atualizar tablet." });
+            res.json({ message: "Tablet atualizado com sucesso." });
+        });
+    });
+};
+
+exports.deletarTablet = (req, res) => {
+    const { id } = req.params;
+
+    db.query("DELETE FROM tablets WHERE idTablet = ?", [id], (err, result) => {
+        if (err) return res.status(500).json({ error: "Erro ao deletar tablet." });
+        res.json({ message: "Tablet deletado com sucesso." });
+    });
+};
+
+// --- backend/src/controllers/regionaisController.js ---
+const db = require("../config/db");
+
+exports.criarRegional = (req, res) => {
+    const { numReg } = req.body;
+    if (!numReg) return res.status(400).json({ error: "Número da regional é obrigatório." });
+
+    const sql = "INSERT INTO regionais (numReg) VALUES (?)";
+    db.query(sql, [numReg], (err, result) => {
+        if (err) return res.status(500).json({ error: "Erro ao criar regional." });
+        res.status(201).json({ message: "Regional criada com sucesso.", idRegional: result.insertId });
+    });
+};
+
+exports.listarRegionais = (req, res) => {
+    db.query("SELECT * FROM regionais", (err, result) => {
+        if (err) return res.status(500).json({ error: "Erro ao listar regionais." });
+        res.json(result);
+    });
+};
+
+exports.editarRegional = (req, res) => {
+    const { id } = req.params;
+    const { nome } = req.body;
+    const sql = "UPDATE regionais SET nome = ? WHERE idRegional = ?";
+
+    db.query(sql, [nome, id], (err, result) => {
+        if (err) return res.status(500).json({ error: "Erro ao atualizar regional." });
+        res.json({ message: "Regional atualizada com sucesso." });
+    });
+};
+
+exports.deletarRegional = (req, res) => {
+    const { id } = req.params;
+    db.query("DELETE FROM regionais WHERE idRegional = ?", [id], (err, result) => {
+        if (err) return res.status(500).json({ error: "Erro ao deletar regional." });
+        res.json({ message: "Regional deletada com sucesso." });
+    });
+};
+
+// --- backend/src/controllers/empresasController.js ---
+const db = require("../config/db");
+
+// Criar empresa
+exports.criarEmpresa = (req, res) => {
+    const { nome } = req.body;
+
+    if (!nome) {
+        return res.status(400).json({ error: "Nome da empresa é obrigatório." });
+    }
+
+    const sql = "INSERT INTO empresas (nomeEmp) VALUES (?)";
+
+    db.query(sql, [nome], (err, result) => {
+        if (err) {
+            console.error("Erro ao criar empresa:", err);
+            return res.status(500).json({ error: "Erro ao criar empresa." });
+        }
+
+        res.status(201).json({ message: "Empresa criada com sucesso.", idEmpresa: result.insertId });
+    });
+};
+
+// Listar empresas
+exports.listarEmpresas = (req, res) => {
+    db.query("SELECT * FROM empresas", (err, result) => {
+        if (err) {
+            return res.status(500).json({ error: "Erro ao listar empresas." });
+        }
+
+        res.json(result);
+    });
+};
+
+// Deletar empresa
+exports.deletarEmpresa = (req, res) => {
+    const { id } = req.params;
+
+    db.query("DELETE FROM empresas WHERE idEmpresa = ?", [id], (err, result) => {
+        if (err) {
+            return res.status(500).json({ error: "Erro ao deletar empresa." });
+        }
+
+        res.json({ message: "Empresa deletada com sucesso." });
+    });
+};
+
+// --- backend/src/controllers/chamadosController.js ---
+const db = require('../config/db');
+const path = require('path');
+const fs = require('fs');
+const PizZip = require('pizzip');
+const Docxtemplater = require('docxtemplater');
+const { format } = require('date-fns');
+const { ptBR } = require('date-fns/locale');
+
+exports.criarChamado = (req, res) => {
+    const { idTab, descricao, item } = req.body;
+    const sql = 'INSERT INTO chamados (idTab, descricao, item, status, dataEntrada) VALUES (?, ?, ?, "Aberto", NOW())';
+
+    db.query(sql, [idTab, descricao, item], (err, result) => {
+        if (err) {
+            console.error("Error creating chamado:", err);
+            return res.status(500).json({ error: "Erro ao criar chamado." });
+        }
+
+        res.status(201).json({ message: "Chamado criado com sucesso.", idChamado: result.insertId });
+    });
+};
+
+exports.listarChamados = (req, res) => {
+    const sql = `
+        SELECT chamados.*, tablets.idTomb, tablets.imei, usuarios.nomeUser, usuarios.telUser
+        FROM chamados
+        JOIN tablets ON chamados.idTab = tablets.idTomb
+        JOIN usuarios ON tablets.idUser = usuarios.idUser
+    `;
+    db.query(sql, (err, results) => {
+        if (err) return res.status(500).json(err);
+        res.json(results);
+    });
+};
+
+exports.buscarChamadoPorIdChamado = (req, res) => {
+    const { id } = req.params;
+    const sql = `
+        SELECT chamados.*, tablets.*, usuarios.nomeUser, usuarios.telUser, unidades.nomeUnidade, regionais.numReg AS nomeRegional, empresas.nomeEmp
+        FROM chamados
+        JOIN tablets ON chamados.idTab = tablets.idTab
+        JOIN usuarios ON tablets.idUser = usuarios.idUser
+        JOIN unidades ON tablets.idUnidade = unidades.idUnidade
+        JOIN regionais ON unidades.idReg = regionais.idReg
+        JOIN empresas ON tablets.idEmp = empresas.idEmp
+        WHERE chamados.idChamado = ?
+    `;
+    db.query(sql, [id], (err, results) => {
+        if (err) return res.status(500).json(err);
+        if (results.length === 0) return res.status(404).json({ mensagem: 'Chamado não encontrado' });
+        res.json(results[0]);
+    });
+};
+
+exports.listarChamadosAtrasados = async (req, res) => {
+    const dias = parseInt(req.query.dias) || 7;
+    try {
+        const [rows] = await db.query(
+            `SELECT * FROM chamados 
+            WHERE status = 'Aberto' AND dataEntrada < DATE_SUB(NOW(), INTERVAL ? DAY)`,
+            [dias]
+        );
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ message: 'Erro ao buscar chamados antigos.', error: err });
+    }
+};
+
+
+exports.listarChamadoPorTablet = async (req, res) => {
+    const { idTablet } = req.params;
+    try {
+        const [rows] = await db.query('SELECT * FROM chamados WHERE idTab = ?', [idTablet]);
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ message: 'Erro ao buscar chamados por tablet.', error: err });
+    }
+};
+
+// Deletar chamado
+exports.deletarChamado = (req, res) => {
+    const { id } = req.params;
+    const sql = 'DELETE FROM chamados WHERE idChamado = ?';
+
+    db.query(sql, [id], (err, result) => {
+        if (err) {
+            console.error("Error deleting chamado:", err);
+            return res.status(500).json({ error: "Erro ao deletar chamado." });
+        }
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: "Chamado não encontrado." });
+        }
+
+        res.json({ message: "Chamado deletado com sucesso." });
+    });
+};
+
+// Function to update a chamado
+exports.atualizarChamado = (req, res) => {
+    const { id } = req.params;
+    const { idTab, status, item, descricao, dataSaida } = req.body;
+
+    if (!idTab || !status) {
+        return res.status(400).json({ error: "ID do tablet e status são obrigatórios." });
+    }
+
+    const sql = `
+        UPDATE chamados 
+        SET idTab = ?, status = ?, item = ?, descricao = ?, dataSaida = ? 
+        WHERE idChamado = ?
+    `;
+
+    db.query(sql, [idTab, status, item, descricao, dataSaida, id], (err, result) => {
+        if (err) {
+            console.error("Erro ao atualizar chamado:", err);
+            return res.status(500).json({ error: "Erro ao atualizar chamado." });
+        }
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: "Chamado não encontrado." });
+        }
+
+        res.json({ message: "Chamado atualizado com sucesso." });
+    });
+};
+
+// Function to close a chamado
+exports.fecharChamado = (req, res) => {
+    const { id } = req.params;
+    const sql = 'UPDATE chamados SET status = "Fechado", dataSaida = NOW() WHERE idChamado = ?';
+
+    db.query(sql, [id], (err, result) => {
+        if (err) {
+            console.error("Erro ao fechar chamado:", err);
+            return res.status(500).json({ error: "Erro ao fechar chamado." });
+        }
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: "Chamado não encontrado." });
+        }
+
+        res.json({ message: "Chamado fechado com sucesso." });
+    });
+};
+
+exports.gerarOS = (req, res) => {
+    const { id, tipo } = req.params;
+    const caminhoModelo = path.join(__dirname, `../../templates/template${tipo.toUpperCase()}.docx`);
+
+    if (!fs.existsSync(caminhoModelo)) {
+        return res.status(400).json({
+            erro: `Modelo de O.S. '${tipo.toUpperCase()}' não encontrado. Verifique se o arquivo 'template${tipo.toUpperCase()}.docx' existe na pasta templates.`
+        });
+    }
+
+    const sql = `
+        SELECT 
+            chamados.idChamado, chamados.descricao, chamados.dataEntrada, chamados.item,
+            tablets.idTomb, tablets.imei, 
+            usuarios.nomeUser, usuarios.telUser, usuarios.cpf, 
+            unidades.nomeUnidade, 
+            regionais.numReg AS nomeRegional, 
+            empresas.nomeEmp, empresas.idEmp
+        FROM chamados
+        JOIN tablets ON chamados.idTab = tablets.idTab
+        JOIN usuarios ON tablets.idUser = usuarios.idUser
+        JOIN unidades ON tablets.idUnidade = unidades.idUnidade
+        JOIN regionais ON unidades.idReg = regionais.idReg
+        JOIN empresas ON tablets.idEmp = empresas.idEmp
+        WHERE chamados.idChamado = ?
+    `;
+
+    db.query(sql, [id], (err, results) => {
+        if (err) return res.status(500).json(err);
+        if (results.length === 0) return res.status(404).json({ mensagem: 'Chamado não encontrado' });
+
+        const data = results[0];
+
+        const conteudo = fs.readFileSync(caminhoModelo, 'binary');
+        const zip = new PizZip(conteudo);
+        const doc = new Docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
+
+        const meses = [
+            "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+            "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+        ];
+
+        const hoje = new Date();
+
+        const dataHoje = `Jaboatão dos Guararapes, ${hoje.getDate()} de ${meses[hoje.getMonth()]
+        } de ${hoje.getFullYear()}`;
+
+        const dia = format(hoje, 'dd', { locale: ptBR });
+        const mes = format(hoje, 'MMMM', { locale: ptBR });
+        const ano = format(hoje, 'yyyy', { locale: ptBR });
+
+        const dataToSet = {
+            dia,
+            mes,
+            ano,
+            dataHoje,
+            nomeUser: data.nomeUser,
+            telUser: data.telUser || '',
+            cpf: data.cpf,
+            tombamento: data.idTomb,
+            imei: data.imei,
+            regional: data.nomeRegional,
+            unidade: data.nomeUnidade,
+            empresa: data.idEmp,
+            item: data.item,
+            idChamado: data.idChamado,
+            descricao: data.descricao,
+            dataEntrada: data.dataEntrada
+                ? format(new Date(data.dataEntrada), 'dd/MM/yyyy', { locale: ptBR })
+                : 'Data não disponível', // Fallback value
+        };
+
+        try {
+            doc.render(dataToSet);
+        } catch (erro) {
+            return res.status(500).json({ erro: 'Erro ao renderizar documento', detalhes: erro });
+        }
+
+        const buffer = doc.getZip().generate({ type: 'nodebuffer' });
+
+        const nomeArquivo = `OS_${tipo.toUpperCase()}_${data.tombamento}_${Date.now()}.docx`;
+        const caminhoFinal = path.join(__dirname, `../../output/${nomeArquivo}`);
+        fs.writeFileSync(caminhoFinal, buffer);
+
+        res.download(caminhoFinal);
+    });
+};
+
+// --- backend/src/config/db.js ---
+const mysql = require("mysql2");
+require("dotenv").config();
+
+const db = mysql.createPool({
+    port: process.env.DB_PORT,
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    charset: 'utf8mb4' // Ensure proper encoding
+});
+
+db.getConnection((err, connection) => {
+    if (err) {
+        console.error("Erro ao conectar ao banco de dados:", err);
+    } else {
+        console.log("Conectado ao banco de dados MySQL!");
+        connection.release();
+    }
+});
+
+module.exports = db;

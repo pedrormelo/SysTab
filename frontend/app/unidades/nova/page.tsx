@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { ArrowLeft, Save } from "lucide-react"
@@ -14,19 +14,32 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Navbar } from "../../components/layout/navbar"
 import { Footer } from "../../components/layout/footer"
 import { useToast } from "@/hooks/use-toast"
+import { useRouter } from "next/navigation"
+import api from "@/lib/api"
 
 export default function NovaUnidade() {
   const [nome, setNome] = useState("")
   const [regional, setRegional] = useState("")
+  const [regionais, setRegionais] = useState<{ idReg: number, numReg: string }[]>([])
   const { toast } = useToast()
+  const router = useRouter()
 
-  // Lista de regionais
-  const regionais = ["Regional 1", "Regional 2", "Regional 3"]
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    api.get("/regionais")
+      .then(res => setRegionais(res.data))
+      .catch(() =>
+        toast({
+          title: "Erro ao carregar regionais",
+          description: "Não foi possível obter a lista de regionais",
+          variant: "destructive",
+        })
+      )
+  }, [])
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Validação básica
     if (!nome || !regional) {
       toast({
         title: "Erro ao salvar",
@@ -36,30 +49,37 @@ export default function NovaUnidade() {
       return
     }
 
-    // Lógica para salvar a unidade
-    toast({
-      title: "Unidade cadastrada",
-      description: `A unidade ${nome} foi cadastrada com sucesso`,
-      variant: "success",
-    })
-
-    // Limpar formulário
-    setNome("")
-    setRegional("")
+    try {
+      await api.post("/unidades", {
+        nomeUnidade: nome,
+        idReg: parseInt(regional),
+      })
+      toast({
+        title: "Unidade cadastrada",
+        description: `A unidade ${nome} foi cadastrada com sucesso`,
+        variant: "success",
+      })
+      setNome("")
+      setRegional("")
+      router.push("/unidades")
+    } catch (err) {
+      toast({
+        title: "Erro ao cadastrar unidade",
+        description: "Não foi possível cadastrar a unidade.",
+        variant: "destructive",
+      })
+    }
   }
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar currentPath="/unidades" />
 
-      {/* Main Content with Background Image */}
       <main className="flex-1 relative">
-        {/* Background Image */}
         <div className="absolute inset-0 z-0">
           <Image src="/beach-background.jpg" alt="Fundo de praia" fill className="object-cover" priority />
         </div>
 
-        {/* Content */}
         <div className="relative z-10 container mx-auto py-6 px-4 max-w-3xl">
           <div className="bg-white/90 backdrop-blur-sm rounded-xl w-full p-6 shadow-xl border border-gray-100">
             <div className="flex items-center mb-6">
@@ -105,8 +125,8 @@ export default function NovaUnidade() {
                         </SelectTrigger>
                         <SelectContent>
                           {regionais.map((reg) => (
-                            <SelectItem key={reg} value={reg}>
-                              {reg}
+                            <SelectItem key={reg.idReg} value={String(reg.idReg)}>
+                              {reg.numReg}
                             </SelectItem>
                           ))}
                         </SelectContent>

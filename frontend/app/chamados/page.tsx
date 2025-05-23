@@ -127,7 +127,7 @@ export default function Chamados() {
     // Filtro por status
     if (statusFilter === "abertos" && chamado.status !== "Aberto") return false
     if (statusFilter === "fechados" && chamado.status !== "Fechado") return false
-    if (statusFilter === "atrasados" && (chamado.status !== "Aberto" || chamado.diasAberto < 7)) return false
+    if (statusFilter === "atrasados" && (chamado.status !== "Aberto" || (chamado.diasAberto ?? 0) < 7)) return false
 
     // Filtros de dropdown
     const unidadeMatch = unidadeFilter === "" || chamado.unidade === unidadeFilter
@@ -254,13 +254,13 @@ export default function Chamados() {
                       Filtros {showFilters && <span className="ml-1 text-xs">(Ativos)</span>}
                     </Button>
 
-                    <Link href="/novo-chamado">
+                    <Link href="/chamados/novo">
                       <Button
                         className="rounded-full bg-gradient-to-r from-[#0948a7] to-[#298ed3] hover:from-[#083b8a] hover:to-[#1c7ab8] text-white"
                         onClick={handleNewTicket}
                       >
                         <Plus className="h-4 w-4 mr-2" />
-                        Abrir Chamado
+                        Novo Chamado
                       </Button>
                     </Link>
                   </div>

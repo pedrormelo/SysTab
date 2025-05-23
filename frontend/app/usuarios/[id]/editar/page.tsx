@@ -1,51 +1,53 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { ArrowLeft, Save } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Navbar } from "../../../components/layout/navbar"
 import { Footer } from "../../../components/layout/footer"
 import { useToast } from "@/hooks/use-toast"
+import api from "@/lib/api"
 
 export default function EditarUsuario({ params }: { params: { id: string } }) {
   const { toast } = useToast()
+  const router = useRouter()
 
-  // Dados de exemplo do usuário
-  const usuarioOriginal = {
-    id: 1,
-    nome: "João Silva",
-    cpf: "123.456.789-00",
-    telefone: "(81) 99999-9999",
-    unidade: "USF ALTO DOIS CARNEIROS",
-    tabletId: 1,
-    tombamento: "123.123",
-  }
+  const [nome, setNome] = useState("")
+  const [cpf, setCpf] = useState("")
+  const [telefone, setTelefone] = useState("")
 
-  // Estados para os campos editáveis
-  const [nome, setNome] = useState(usuarioOriginal.nome)
-  const [cpf, setCpf] = useState(usuarioOriginal.cpf)
-  const [telefone, setTelefone] = useState(usuarioOriginal.telefone)
-  const [unidade, setUnidade] = useState(usuarioOriginal.unidade)
+  useEffect(() => {
+    api.get("/usuarios")
+      .then((res) => {
+        const usuario = res.data.find((u: any) => u.idUsuario == params.id || u.idUser == params.id || u.id == params.id)
+        if (usuario) {
+          setNome(usuario.nomeUser || usuario.nome || "")
+          setCpf(usuario.cpf || "")
+          setTelefone(usuario.telUser || usuario.telefone || "")
+        } else {
+          toast({
+            title: "Usuário não encontrado",
+            description: "Não foi possível encontrar os dados para este ID.",
+            variant: "destructive",
+          })
+          router.push("/usuarios")
+        }
+      })
+      .catch(() => {
+        toast({
+          title: "Erro ao carregar dados",
+          description: "Não foi possível obter os dados do usuário.",
+          variant: "destructive",
+        })
+      })
+  }, [params.id, toast, router])
 
-  // Lista de unidades
-  const unidades = [
-    "USF ALTO DOIS CARNEIROS",
-    "USF PRAZERES",
-    "USF CAVALEIRO",
-    "USF MURIBECA",
-    "USF JARDIM JORDÃO",
-    "USF BARRA DE JANGADA",
-  ]
-
-  // Função para formatar CPF
   const formatCPF = (value: string) => {
     const digits = value.replace(/\D/g, "")
     if (digits.length <= 3) return digits
@@ -54,7 +56,6 @@ export default function EditarUsuario({ params }: { params: { id: string } }) {
     return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9, 11)}`
   }
 
-  // Função para formatar telefone
   const formatTelefone = (value: string) => {
     const digits = value.replace(/\D/g, "")
     if (digits.length <= 2) return `(${digits}`
@@ -64,62 +65,68 @@ export default function EditarUsuario({ params }: { params: { id: string } }) {
   }
 
   const handleCPFChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formattedCPF = formatCPF(e.target.value)
-    if (formattedCPF.length <= 14) {
-      setCpf(formattedCPF)
-    }
+    const formatted = formatCPF(e.target.value)
+    if (formatted.length <= 14) setCpf(formatted)
   }
 
   const handleTelefoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formattedTelefone = formatTelefone(e.target.value)
-    if (formattedTelefone.length <= 15) {
-      setTelefone(formattedTelefone)
-    }
+    const formatted = formatTelefone(e.target.value)
+    if (formatted.length <= 15) setTelefone(formatted)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Validação básica
-    if (!nome || !cpf || !unidade) {
+    if (!nome || !cpf) {
       toast({
         title: "Erro ao salvar",
-        description: "Preencha todos os campos obrigatórios",
+        description: "Nome e CPF são obrigatórios.",
         variant: "destructive",
       })
       return
     }
 
-    // Validar CPF (formato básico)
     if (cpf.length < 14) {
       toast({
         title: "CPF inválido",
-        description: "Por favor, insira um CPF válido",
+        description: "Por favor, insira um CPF válido.",
         variant: "destructive",
       })
       return
     }
 
-    // Lógica para salvar o usuário
-    toast({
-      title: "Usuário atualizado",
-      description: `O usuário ${nome} foi atualizado com sucesso`,
-      variant: "success",
-    })
+    try {
+      await api.put(`/usuarios/${params.id}`, {
+        nomeUser: nome,
+        cpf,
+        telUser: telefone,
+      })
+
+      toast({
+        title: "Usuário atualizado",
+        description: `O usuário ${nome} foi atualizado com sucesso.`,
+        variant: "success",
+      })
+
+      router.push("/usuarios")
+    } catch {
+      toast({
+        title: "Erro ao atualizar usuário",
+        description: "Não foi possível atualizar os dados do usuário.",
+        variant: "destructive",
+      })
+    }
   }
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar currentPath="/usuarios" />
 
-      {/* Main Content with Background Image */}
       <main className="flex-1 relative">
-        {/* Background Image */}
         <div className="absolute inset-0 z-0">
           <Image src="/beach-background.jpg" alt="Fundo de praia" fill className="object-cover" priority />
         </div>
 
-        {/* Content */}
         <div className="relative z-10 container mx-auto py-6 px-4 max-w-3xl">
           <div className="bg-white/90 backdrop-blur-sm rounded-xl w-full p-6 shadow-xl border border-gray-100">
             <div className="flex items-center mb-6">
@@ -180,24 +187,6 @@ export default function EditarUsuario({ params }: { params: { id: string } }) {
                         onChange={handleTelefoneChange}
                         className="border-gray-200"
                       />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="unidade" className="text-gray-700">
-                        Unidade <span className="text-red-500">*</span>
-                      </Label>
-                      <Select value={unidade} onValueChange={setUnidade} required>
-                        <SelectTrigger id="unidade" className="border-gray-200">
-                          <SelectValue placeholder="Selecione a unidade" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {unidades.map((unid) => (
-                            <SelectItem key={unid} value={unid}>
-                              {unid}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
                     </div>
                   </div>
 

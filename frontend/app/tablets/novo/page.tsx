@@ -29,25 +29,15 @@ export default function NovoTablet() {
   const modelos = ["Samsung Galaxy Tab A7", "Samsung Galaxy Tab S6", "iPad 8ª Geração", "Lenovo Tab M10"]
   const empresas = ["EVEREST", "NEXUS", "TECH SOLUTIONS"]
   const usuarios = ["João Silva", "Maria Santos", "Carlos Oliveira", "Ana Pereira", "Paulo Mendes", "Fernanda Lima"]
-
-  // Dados de unidades com suas respectivas regionais
-  const unidadesData = [
-    { nome: "USF ALTO DOIS CARNEIROS", regional: "Regional 2" },
-    { nome: "USF PRAZERES", regional: "Regional 1" },
-    { nome: "USF CAVALEIRO", regional: "Regional 3" },
-    { nome: "USF MURIBECA", regional: "Regional 2" },
-    { nome: "USF JARDIM JORDÃO", regional: "Regional 1" },
-    { nome: "USF BARRA DE JANGADA", regional: "Regional 3" },
+  const unidades = [
+    "USF ALTO DOIS CARNEIROS",
+    "USF PRAZERES",
+    "USF CAVALEIRO",
+    "USF MURIBECA",
+    "USF JARDIM JORDÃO",
+    "USF BARRA DE JANGADA",
   ]
-
-  // Atualizar a regional quando a unidade mudar
-  const handleUnidadeChange = (value: string) => {
-    setUnidade(value)
-    const unidadeSelecionada = unidadesData.find((u) => u.nome === value)
-    if (unidadeSelecionada) {
-      setRegional(unidadeSelecionada.regional)
-    }
-  }
+  const regionais = ["Regional 1", "Regional 2", "Regional 3"]
 
   // Formatar IMEI
   const formatIMEI = (value: string) => {
@@ -62,7 +52,7 @@ export default function NovoTablet() {
     e.preventDefault()
 
     // Validação básica
-    if (!tombamento || !imei || !modelo || !empresa || !usuario || !unidade) {
+    if (!tombamento || !imei || !modelo || !empresa || !usuario || !unidade || !regional) {
       toast({
         title: "Erro ao salvar",
         description: "Preencha todos os campos obrigatórios",
@@ -218,14 +208,14 @@ export default function NovoTablet() {
                       <Label htmlFor="unidade" className="text-gray-700">
                         Unidade <span className="text-red-500">*</span>
                       </Label>
-                      <Select value={unidade} onValueChange={handleUnidadeChange} required>
+                      <Select value={unidade} onValueChange={setUnidade} required>
                         <SelectTrigger id="unidade" className="border-gray-200">
                           <SelectValue placeholder="Selecione a unidade" />
                         </SelectTrigger>
                         <SelectContent>
-                          {unidadesData.map((unid) => (
-                            <SelectItem key={unid.nome} value={unid.nome}>
-                              {unid.nome}
+                          {unidades.map((unid) => (
+                            <SelectItem key={unid} value={unid}>
+                              {unid}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -234,10 +224,20 @@ export default function NovoTablet() {
 
                     <div className="space-y-2">
                       <Label htmlFor="regional" className="text-gray-700">
-                        Regional
+                        Regional <span className="text-red-500">*</span>
                       </Label>
-                      <Input id="regional" value={regional} className="border-gray-200 bg-gray-50" disabled />
-                      <p className="text-xs text-gray-500">A regional é determinada pela unidade selecionada</p>
+                      <Select value={regional} onValueChange={setRegional} required>
+                        <SelectTrigger id="regional" className="border-gray-200">
+                          <SelectValue placeholder="Selecione a regional" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {regionais.map((reg) => (
+                            <SelectItem key={reg} value={reg}>
+                              {reg}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 

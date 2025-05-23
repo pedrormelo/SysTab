@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Search, Plus, Eye, Edit, Trash2, Filter } from "lucide-react"
@@ -9,11 +9,9 @@ import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Navbar } from "./components/layout/navbar"
 import { Footer } from "./components/layout/footer"
 import { useToast } from "@/hooks/use-toast"
-import { useNotifications } from "@/contexts/notification-context"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,43 +35,6 @@ export default function SysTAB() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const tableRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
-  const { addNotification } = useNotifications()
-
-  // Adicionar notificações de exemplo ao carregar a página
-  useEffect(() => {
-    // Verificar se já adicionamos notificações de exemplo (usando sessionStorage)
-    const hasAddedExampleNotifications = sessionStorage.getItem("hasAddedExampleNotifications")
-
-    if (!hasAddedExampleNotifications) {
-      // Adicionar com um pequeno atraso para garantir que a UI esteja pronta
-      setTimeout(() => {
-        addNotification({
-          title: "Bem-vindo ao SysTAB",
-          message: "Sistema de Gerenciamento de Tablets da Secretaria de Saúde",
-          type: "info",
-        })
-
-        setTimeout(() => {
-          addNotification({
-            title: "Chamado atrasado",
-            message: "O chamado #100 está aberto há mais de 7 dias",
-            type: "warning",
-          })
-        }, 1500)
-
-        setTimeout(() => {
-          addNotification({
-            title: "Novo tablet cadastrado",
-            message: "O tablet #8 foi cadastrado com sucesso",
-            type: "success",
-          })
-        }, 3000)
-      }, 1000)
-
-      // Marcar que já adicionamos as notificações de exemplo
-      sessionStorage.setItem("hasAddedExampleNotifications", "true")
-    }
-  }, [addNotification])
 
   // Dados de exemplo
   const tablets = [
@@ -85,8 +46,6 @@ export default function SysTAB() {
       empresa: "EVEREST",
       unidade: "USF ALTO DOIS CARNEIROS",
       regional: "Regional 2",
-      chamadosAbertos: 1,
-      chamadosAtrasados: 0,
     },
     {
       id: 2,
@@ -96,8 +55,6 @@ export default function SysTAB() {
       empresa: "EVEREST",
       unidade: "USF PRAZERES",
       regional: "Regional 1",
-      chamadosAbertos: 1,
-      chamadosAtrasados: 0,
     },
     {
       id: 3,
@@ -107,8 +64,6 @@ export default function SysTAB() {
       empresa: "EVEREST",
       unidade: "USF CAVALEIRO",
       regional: "Regional 3",
-      chamadosAbertos: 1,
-      chamadosAtrasados: 1,
     },
     {
       id: 4,
@@ -118,8 +73,6 @@ export default function SysTAB() {
       empresa: "EVEREST",
       unidade: "USF MURIBECA",
       regional: "Regional 2",
-      chamadosAbertos: 0,
-      chamadosAtrasados: 0,
     },
     {
       id: 5,
@@ -129,8 +82,6 @@ export default function SysTAB() {
       empresa: "EVEREST",
       unidade: "USF JARDIM JORDÃO",
       regional: "Regional 1",
-      chamadosAbertos: 0,
-      chamadosAtrasados: 0,
     },
     {
       id: 6,
@@ -140,8 +91,6 @@ export default function SysTAB() {
       empresa: "EVEREST",
       unidade: "USF BARRA DE JANGADA",
       regional: "Regional 3",
-      chamadosAbertos: 0,
-      chamadosAtrasados: 0,
     },
     {
       id: 7,
@@ -151,8 +100,6 @@ export default function SysTAB() {
       empresa: "NEXUS",
       unidade: "USF CAJUEIRO SECO",
       regional: "Regional 2",
-      chamadosAbertos: 0,
-      chamadosAtrasados: 0,
     },
   ]
 
@@ -176,13 +123,7 @@ export default function SysTAB() {
     const unidadeMatch = unidadeFilter === "" || tablet.unidade === unidadeFilter
     const regionalMatch = regionalFilter === "" || tablet.regional === regionalFilter
 
-    // Filtros de chamados
-    const chamadosAbertosMatch = !chamadosAbertosFilter || tablet.chamadosAbertos > 0
-    const chamadosAtrasadosMatch = !chamadosAtrasadosFilter || tablet.chamadosAtrasados > 0
-
-    return (
-      searchMatch && empresaMatch && unidadeMatch && regionalMatch && chamadosAbertosMatch && chamadosAtrasadosMatch
-    )
+    return searchMatch && empresaMatch && unidadeMatch && regionalMatch
   })
 
   // Limpar filtros
@@ -199,12 +140,6 @@ export default function SysTAB() {
       description: "Todos os filtros foram removidos",
       variant: "info",
     })
-
-    addNotification({
-      title: "Filtros limpos",
-      message: "Todos os filtros foram removidos com sucesso",
-      type: "info",
-    })
   }
 
   // Funções para manipulação de tablets
@@ -213,12 +148,6 @@ export default function SysTAB() {
       title: "Novo tablet",
       description: "Formulário de cadastro de tablet aberto",
       variant: "info",
-    })
-
-    addNotification({
-      title: "Novo tablet",
-      message: "Formulário de cadastro de tablet aberto",
-      type: "info",
     })
   }
 
@@ -234,13 +163,6 @@ export default function SysTAB() {
       description: `O tablet #${tabletToDelete} foi excluído com sucesso`,
       variant: "success",
     })
-
-    addNotification({
-      title: "Tablet excluído",
-      message: `O tablet #${tabletToDelete} foi excluído com sucesso`,
-      type: "success",
-    })
-
     setIsDeleteDialogOpen(false)
     setTabletToDelete(null)
   }
@@ -364,30 +286,6 @@ export default function SysTAB() {
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-6 mb-4">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="chamados-abertos"
-                        checked={chamadosAbertosFilter}
-                        onCheckedChange={(checked) => setChamadosAbertosFilter(checked as boolean)}
-                      />
-                      <Label htmlFor="chamados-abertos" className="text-sm cursor-pointer">
-                        Com chamados abertos
-                      </Label>
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="chamados-atrasados"
-                        checked={chamadosAtrasadosFilter}
-                        onCheckedChange={(checked) => setChamadosAtrasadosFilter(checked as boolean)}
-                      />
-                      <Label htmlFor="chamados-atrasados" className="text-sm cursor-pointer">
-                        Com chamados atrasados
-                      </Label>
-                    </div>
-                  </div>
-
                   <div className="flex flex-wrap items-center gap-6">
                     <Button
                       variant="outline"
@@ -447,12 +345,6 @@ export default function SysTAB() {
                                       description: `Detalhes do tablet #${tablet.id}`,
                                       variant: "info",
                                     })
-
-                                    addNotification({
-                                      title: "Visualizando tablet",
-                                      message: `Detalhes do tablet #${tablet.id}`,
-                                      type: "info",
-                                    })
                                   }}
                                 >
                                   <Eye className="h-4 w-4" />
@@ -469,12 +361,6 @@ export default function SysTAB() {
                                       title: "Editando tablet",
                                       description: `Formulário de edição do tablet #${tablet.id}`,
                                       variant: "info",
-                                    })
-
-                                    addNotification({
-                                      title: "Editando tablet",
-                                      message: `Formulário de edição do tablet #${tablet.id}`,
-                                      type: "info",
                                     })
                                   }}
                                 >

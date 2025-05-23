@@ -13,8 +13,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { useSearchParams } from "next/navigation"
-import { Navbar } from "../components/layout/navbar"
-import { Footer } from "../components/layout/footer"
+import { Navbar } from "../../components/layout/navbar"
+import { Footer } from "../../components/layout/footer"
 import { useToast } from "@/hooks/use-toast"
 
 export default function NovoChamado() {
@@ -22,7 +22,12 @@ export default function NovoChamado() {
   const tabletId = searchParams.get("tablet")
   const { toast } = useToast()
 
-  // Estados para os campos do formulário
+  // Vamos modificar a página de criação de novo chamado conforme solicitado
+
+  // Substitua a parte dos itens recebidos e observações
+  // Remova o motivo e modifique os campos conforme solicitado
+
+  // Primeiro, atualize os estados no início do componente
   const [descricao, setDescricao] = useState("")
   const [telefone, setTelefone] = useState("")
   const [tabletSelecionado, setTabletSelecionado] = useState(tabletId || "")
@@ -73,48 +78,12 @@ export default function NovoChamado() {
       unidade: "USF CAVALEIRO",
       modelo: "Samsung Galaxy Tab A7",
     },
-    {
-      id: 4,
-      tombamento: "126.012",
-      imei: "355637050806465",
-      usuario: "Ana Pereira",
-      empresa: "EVEREST",
-      unidade: "USF MURIBECA",
-      modelo: "Samsung Galaxy Tab A7",
-    },
-    {
-      id: 5,
-      tombamento: "127.345",
-      imei: "355637050806466",
-      usuario: "Paulo Mendes",
-      empresa: "EVEREST",
-      unidade: "USF JARDIM JORDÃO",
-      modelo: "Samsung Galaxy Tab A7",
-    },
-    {
-      id: 6,
-      tombamento: "128.678",
-      imei: "355637050806467",
-      usuario: "Fernanda Lima",
-      empresa: "EVEREST",
-      unidade: "USF BARRA DE JANGADA",
-      modelo: "Samsung Galaxy Tab A7",
-    },
-    {
-      id: 7,
-      tombamento: "129.901",
-      imei: "355637050806468",
-      usuario: "Ricardo Souza",
-      empresa: "NEXUS",
-      unidade: "USF CAJUEIRO SECO",
-      modelo: "Samsung Galaxy Tab A7",
-    },
   ]
 
   // Encontrar o tablet selecionado
   const tablet = tablets.find((t) => t.id === Number(tabletSelecionado))
 
-  // Função para lidar com o envio do formulário
+  // Atualize também a função handleSubmit para refletir as mudanças
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 

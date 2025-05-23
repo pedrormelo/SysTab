@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import {
@@ -14,10 +14,10 @@ import {
   Printer,
   FileText,
   FileOutput,
-  RefreshCw,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Textarea } from "@/components/ui/textarea"
 import { Navbar } from "../../components/layout/navbar"
 import { Footer } from "../../components/layout/footer"
 import { useToast } from "@/hooks/use-toast"
@@ -31,154 +31,30 @@ import {
 } from "@/components/ui/dialog"
 
 export default function ChamadoDetails({ params }: { params: { id: string } }) {
+  const [resolucao, setResolucao] = useState("")
   const [isClosing, setIsClosing] = useState(false)
   const [printDialogOpen, setPrintDialogOpen] = useState(false)
-  const [chamado, setChamado] = useState<any>(null)
   const { toast } = useToast()
-  // Adicionar estado para controlar o diálogo de confirmação para reabrir chamado
-  const [isReopeningDialog, setIsReopeningDialog] = useState(false)
 
-  // Dados de exemplo - simulando uma base de dados
-  const chamadosData = [
-    {
-      id: 101,
-      tabletId: 1,
-      tombamento: "123.123",
-      dataEntrada: "10/02/2025",
-      dataSaida: null,
-      descricao:
-        "Tela quebrada, necessita de substituição urgente. O usuário relatou que o tablet caiu no chão e a tela trincou em vários pontos, impossibilitando o uso. Será necessário avaliar se compensa o reparo ou a substituição do equipamento.",
-      status: "Aberto",
-      usuario: "João Silva",
-      telefone: "(81) 99999-9999",
-      unidade: "USF ALTO DOIS CARNEIROS",
-      diasAberto: 3,
-      itensRecebidos: "Carregador e Capinha",
-    },
-    {
-      id: 102,
-      tabletId: 2,
-      tombamento: "124.456",
-      dataEntrada: "08/02/2025",
-      dataSaida: null,
-      descricao:
-        "Bateria não carrega, mesmo com carregador original. Usuário tentou diferentes tomadas e carregadores, mas o tablet não responde.",
-      status: "Aberto",
-      usuario: "Maria Santos",
-      telefone: "(81) 99999-8888",
-      unidade: "USF PRAZERES",
-      diasAberto: 5,
-      itensRecebidos: "Tablet e Carregador",
-    },
-    {
-      id: 100,
-      tabletId: 3,
-      tombamento: "125.789",
-      dataEntrada: "05/02/2025",
-      dataSaida: null,
-      descricao:
-        "Atualização de sistema operacional para Android 13. O tablet está lento e com problemas de compatibilidade com alguns aplicativos.",
-      status: "Aberto",
-      usuario: "Carlos Oliveira",
-      telefone: "(81) 99999-7777",
-      unidade: "USF CAVALEIRO",
-      diasAberto: 8,
-      itensRecebidos: "Tablet",
-    },
-    {
-      id: 99,
-      tabletId: 4,
-      tombamento: "126.012",
-      dataEntrada: "01/02/2025",
-      dataSaida: "03/02/2025",
-      descricao: "Troca de equipamento por modelo mais recente devido à obsolescência do hardware.",
-      status: "Fechado",
-      usuario: "Ana Pereira",
-      telefone: "(81) 99999-6666",
-      unidade: "USF MURIBECA",
-      itensRecebidos: "Tablet, Carregador e Capinha",
-      resolucao: "Equipamento substituído por um modelo mais recente. Configurações e dados transferidos com sucesso.",
-    },
-    {
-      id: 98,
-      tabletId: 1,
-      tombamento: "123.123",
-      dataEntrada: "25/01/2025",
-      dataSaida: "26/01/2025",
-      descricao: "Configuração de email institucional e aplicativos.",
-      status: "Fechado",
-      usuario: "João Silva",
-      telefone: "(81) 99999-9999",
-      unidade: "USF ALTO DOIS CARNEIROS",
-      itensRecebidos: "Tablet",
-      resolucao:
-        "Email configurado e aplicativos instalados conforme solicitado. Realizado treinamento básico com o usuário.",
-    },
-    {
-      id: 97,
-      tabletId: 5,
-      tombamento: "127.345",
-      dataEntrada: "20/01/2025",
-      dataSaida: "22/01/2025",
-      descricao: "Problema com aplicativo de prontuário, travando constantemente.",
-      status: "Fechado",
-      usuario: "Paulo Mendes",
-      telefone: "(81) 99999-5555",
-      unidade: "USF JARDIM JORDÃO",
-      itensRecebidos: "Tablet e Carregador",
-      resolucao: "Aplicativo reinstalado e cache limpo. Problema resolvido após atualização do sistema operacional.",
-    },
-    {
-      id: 96,
-      tabletId: 6,
-      tombamento: "128.678",
-      dataEntrada: "15/01/2025",
-      dataSaida: "16/01/2025",
-      descricao: "Atualização de firmware e reinstalação do sistema.",
-      status: "Fechado",
-      usuario: "Fernanda Lima",
-      telefone: "(81) 99999-4444",
-      unidade: "USF BARRA DE JANGADA",
-      itensRecebidos: "Tablet",
-      resolucao: "Firmware atualizado e sistema reinstalado com sucesso. Todos os aplicativos configurados.",
-    },
-    {
-      id: 95,
-      tabletId: 7,
-      tombamento: "129.901",
-      dataEntrada: "10/01/2025",
-      dataSaida: "12/01/2025",
-      descricao: "Configuração inicial e instalação de aplicativos.",
-      status: "Fechado",
-      usuario: "Ricardo Souza",
-      telefone: "(81) 99999-3333",
-      unidade: "USF CAJUEIRO SECO",
-      itensRecebidos: "Tablet e Carregador",
-      resolucao: "Tablet configurado e todos os aplicativos necessários instalados conforme solicitado.",
-    },
-  ]
-
-  // Carregar os dados do chamado com base no ID
-  useEffect(() => {
-    const chamadoId = Number.parseInt(params.id)
-    const chamadoEncontrado = chamadosData.find((c) => c.id === chamadoId)
-
-    if (chamadoEncontrado) {
-      setChamado(chamadoEncontrado)
-    } else {
-      // Fallback para o primeiro chamado se não encontrar (apenas para demonstração)
-      toast({
-        title: "Chamado não encontrado",
-        description: "O chamado solicitado não foi encontrado no sistema.",
-        variant: "destructive",
-      })
-    }
-  }, [params.id, toast])
+  // Dados de exemplo
+  const chamado = {
+    id: 101,
+    tabletId: 1,
+    tombamento: "123.123",
+    dataEntrada: "10/02/2025",
+    dataSaida: null,
+    descricao:
+      "Tela quebrada, necessita de substituição urgente. O usuário relatou que o tablet caiu no chão e a tela trincou em vários pontos, impossibilitando o uso. Será necessário avaliar se compensa o reparo ou a substituição do equipamento.",
+    status: "Aberto",
+    usuario: "João Silva",
+    telefone: "(81) 99999-9999",
+    unidade: "USF ALTO DOIS CARNEIROS",
+    diasAberto: 3,
+    itensRecebidos: "Carregador e Capinha",
+  }
 
   // Função para renderizar o status com a bolinha colorida
   const renderStatus = () => {
-    if (!chamado) return null
-
     let color = ""
 
     if (chamado.status === "Fechado") {
@@ -201,7 +77,21 @@ export default function ChamadoDetails({ params }: { params: { id: string } }) {
   }
 
   const handleCloseChamado = () => {
-    setIsClosing(true)
+    if (!resolucao.trim()) {
+      toast({
+        title: "Erro ao fechar chamado",
+        description: "É necessário informar a resolução do chamado",
+        variant: "destructive",
+      })
+      return
+    }
+
+    toast({
+      title: "Chamado fechado com sucesso",
+      description: `O chamado #${params.id} foi fechado`,
+      variant: "success",
+    })
+    setIsClosing(false)
   }
 
   const handlePrintOS = (tipo: "entrega" | "devolucao") => {
@@ -211,32 +101,6 @@ export default function ChamadoDetails({ params }: { params: { id: string } }) {
       variant: "success",
     })
     setPrintDialogOpen(false)
-  }
-
-  if (!chamado) {
-    return (
-      <div className="min-h-screen flex flex-col bg-gray-50">
-        <Navbar currentPath="/chamados" />
-        <main className="flex-1 relative">
-          <div className="absolute inset-0 z-0">
-            <Image src="/beach-background.jpg" alt="Fundo de praia" fill className="object-cover" priority />
-          </div>
-          <div className="relative z-10 container mx-auto py-6 px-4 flex items-center justify-center h-full">
-            <div className="bg-gradient-to-r from-[#0948a7] to-[#298ed3] rounded-xl p-8 shadow-xl border border-gray-100 text-center">
-              <h2 className="text-xl font-medium text-white mb-2">Chamado não encontrado</h2>
-              <p className="text-white/80 mb-4">O chamado solicitado não existe ou foi removido.</p>
-              <Link href="/chamados">
-                <Button className="rounded-full bg-white text-[#0948a7] hover:bg-gray-100">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Voltar para Chamados
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    )
   }
 
   return (
@@ -282,23 +146,14 @@ export default function ChamadoDetails({ params }: { params: { id: string } }) {
                     Editar
                   </Button>
                 </Link>
-                {chamado.status === "Aberto" ? (
+                {chamado.status === "Aberto" && (
                   <Button
                     className="rounded-full bg-green-600 hover:bg-green-700 text-white"
                     size="sm"
-                    onClick={handleCloseChamado}
+                    onClick={() => setIsClosing(true)}
                   >
                     <Save className="h-4 w-4 mr-2" />
                     Fechar Chamado
-                  </Button>
-                ) : (
-                  <Button
-                    className="rounded-full bg-blue-600 hover:bg-blue-700 text-white"
-                    size="sm"
-                    onClick={() => setIsReopeningDialog(true)}
-                  >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Reabrir Chamado
                   </Button>
                 )}
               </div>
@@ -350,7 +205,14 @@ export default function ChamadoDetails({ params }: { params: { id: string } }) {
                       </p>
                     </div>
 
-                    {chamado.status === "Fechado" && <div></div>}
+                    {chamado.status === "Fechado" && (
+                      <div>
+                        <p className="text-sm text-gray-500">Resolução</p>
+                        <p className="mt-1 text-gray-800 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                          Problema resolvido com a substituição da tela. Equipamento testado e funcionando normalmente.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -395,23 +257,21 @@ export default function ChamadoDetails({ params }: { params: { id: string } }) {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Fechar Chamado</DialogTitle>
-            <DialogDescription>Tem certeza que deseja fechar este chamado?</DialogDescription>
+            <DialogDescription>Informe a resolução do chamado para finalizá-lo</DialogDescription>
           </DialogHeader>
-          <DialogFooter className="pt-4">
+          <div className="py-4">
+            <Textarea
+              placeholder="Descreva como o problema foi resolvido..."
+              className="min-h-[120px]"
+              value={resolucao}
+              onChange={(e) => setResolucao(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
             <Button variant="outline" onClick={() => setIsClosing(false)} className="rounded-full border-gray-200">
               Cancelar
             </Button>
-            <Button
-              onClick={() => {
-                toast({
-                  title: "Chamado fechado com sucesso",
-                  description: `O chamado #${params.id} foi fechado`,
-                  variant: "success",
-                })
-                setIsClosing(false)
-              }}
-              className="rounded-full bg-green-600 hover:bg-green-700 text-white"
-            >
+            <Button onClick={handleCloseChamado} className="rounded-full bg-green-600 hover:bg-green-700 text-white">
               Fechar Chamado
             </Button>
           </DialogFooter>
@@ -466,39 +326,6 @@ export default function ChamadoDetails({ params }: { params: { id: string } }) {
               </Button>
             </DialogFooter>
           </div>
-        </DialogContent>
-      </Dialog>
-      {/* Dialog para reabrir chamado */}
-      <Dialog open={isReopeningDialog} onOpenChange={setIsReopeningDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Reabrir Chamado</DialogTitle>
-            <DialogDescription>
-              Tem certeza que deseja reabrir este chamado? Isso irá alterar o status para "Aberto" novamente.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="pt-4">
-            <Button
-              variant="outline"
-              onClick={() => setIsReopeningDialog(false)}
-              className="rounded-full border-gray-200"
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={() => {
-                toast({
-                  title: "Chamado reaberto",
-                  description: `O chamado #${params.id} foi reaberto com sucesso`,
-                  variant: "success",
-                })
-                setIsReopeningDialog(false)
-              }}
-              className="rounded-full bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              Reabrir Chamado
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
