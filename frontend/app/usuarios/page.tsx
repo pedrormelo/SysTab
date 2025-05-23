@@ -118,12 +118,10 @@ export default function Usuarios() {
     })
   }
 
-const handleDeleteUser = (usuario: Usuario) => {
-  setTabletVinculado(!!usuario.tabletId)
-  setUserToDelete(usuario.id)
-  setIsDeleteDialogOpen(true)
-}
-
+  const handleDeleteUser = (usuario: Usuario) => {
+    setUserToDelete(usuario.id)
+    setIsDeleteDialogOpen(true)
+  }
 
   const confirmDelete = async () => {
     if (!userToDelete) return;
@@ -363,7 +361,7 @@ const handleDeleteUser = (usuario: Usuario) => {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              {tabletVinculado
+              {usuarios.find(u => u.id === userToDelete)?.tabletId !== undefined
                 ? "Este item possui um tablet vinculado. Ao excluir, o tablet será mantido, mas o vínculo será removido. Deseja continuar?"
                 : "Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita."}
             </AlertDialogDescription>
@@ -379,6 +377,7 @@ const handleDeleteUser = (usuario: Usuario) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
 
     </div>
   )
