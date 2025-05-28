@@ -20,7 +20,7 @@ export default function NovoTablet() {
   const [tombamento, setTombamento] = useState("")
   const [imei, setImei] = useState("")
   const [idEmpresa, setIdEmpresa] = useState("")
-  const [idUsuario, setIdUsuario] = useState("")
+  const [idUser, setIdUsuario] = useState("")
   const [idUnidade, setIdUnidade] = useState("")
   const { toast } = useToast()
 
@@ -51,7 +51,7 @@ export default function NovoTablet() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!tombamento || !imei || !idEmpresa || !idUsuario || !idUnidade) {
+    if (!tombamento || !imei || !idEmpresa || !idUser || !idUnidade) {
       toast({
         title: "Erro ao salvar",
         description: "Preencha todos os campos obrigatórios",
@@ -70,13 +70,17 @@ export default function NovoTablet() {
     }
 
     try {
-      await api.post("/tablets", {
-        idTomb: tombamento,
+      const payload = {
+        idTomb: tombamento.replace(/\D/g, ""), // envia como string sem ponto
         imei,
-        idEmp: parseInt(idEmpresa),
-        idUser: parseInt(idUsuario),
-        idUnidade: parseInt(idUnidade),
-      })
+        idEmp: idEmpresa,
+        idUser: idUser,
+        idUnidade: idUnidade,
+      }
+
+      console.log("Enviando:", payload)
+
+      await api.post("/tablets", payload)
 
       toast({
         title: "Tablet cadastrado",
@@ -115,7 +119,7 @@ export default function NovoTablet() {
         <div className="relative z-10 container mx-auto py-6 px-4 max-w-3xl">
           <div className="bg-white/90 backdrop-blur-sm rounded-xl w-full p-6 shadow-xl border border-gray-100">
             <div className="flex items-center mb-6">
-              <Link href="/tablets">
+              <Link href="/">
                 <Button variant="outline" size="sm" className="rounded-full border-gray-200 hover:bg-gray-100 mr-4">
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Voltar
@@ -163,7 +167,7 @@ export default function NovoTablet() {
 
                     <div className="space-y-2">
                       <Label htmlFor="usuario">Usuário <span className="text-red-500">*</span></Label>
-                      <Select value={idUsuario} onValueChange={setIdUsuario}>
+                      <Select value={idUser} onValueChange={setIdUsuario}>
                         <SelectTrigger id="usuario" className="border-gray-200">
                           <SelectValue placeholder="Selecione o usuário" />
                         </SelectTrigger>

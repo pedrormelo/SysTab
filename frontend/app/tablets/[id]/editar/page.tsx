@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { ArrowLeft, Save } from "lucide-react"
@@ -14,61 +13,63 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Navbar } from "../../../components/layout/navbar"
 import { Footer } from "../../../components/layout/footer"
 import { useToast } from "@/hooks/use-toast"
+import api from "@/lib/api"
 
 export default function EditarTablet({ params }: { params: { id: string } }) {
   const { toast } = useToast()
 
-  // Dados de exemplo do tablet
-  const tabletOriginal = {
-    id: 1,
-    tombamento: "123.123",
-    imei: "355637050806462",
-    usuario: "João Silva",
-    empresa: "EVEREST",
-    unidade: "USF ALTO DOIS CARNEIROS",
-    modelo: "Samsung Galaxy Tab A7",
-    regional: "Regional 2",
-    dataEntrega: "15/01/2025",
-    telefoneUsuario: "(81) 99999-9999",
-  }
+  const [tombamento, setTombamento] = useState("")
+  const [imei, setImei] = useState("")
+  const [idEmpresa, setIdEmpresa] = useState("")
+  const [idUser, setIdUser] = useState("")
+  const [idUnidade, setIdUnidade] = useState("")
+  const [loading, setLoading] = useState(true)
 
-  // Estados para os campos editáveis
-  const [tombamento, setTombamento] = useState(tabletOriginal.tombamento)
-  const [imei, setImei] = useState(tabletOriginal.imei)
-  const [modelo, setModelo] = useState(tabletOriginal.modelo)
-  const [empresa, setEmpresa] = useState(tabletOriginal.empresa)
-  const [usuario, setUsuario] = useState(tabletOriginal.usuario)
-  const [unidade, setUnidade] = useState(tabletOriginal.unidade)
-  const [regional, setRegional] = useState(tabletOriginal.regional)
+  const [empresas, setEmpresas] = useState<any[]>([])
+  const [usuarios, setUsuarios] = useState<any[]>([])
+  const [unidades, setUnidades] = useState<any[]>([])
 
-  // Listas de exemplo
-  const modelos = ["Samsung Galaxy Tab A7", "Samsung Galaxy Tab S6", "iPad 8ª Geração", "Lenovo Tab M10"]
-  const empresas = ["EVEREST", "NEXUS", "TECH SOLUTIONS"]
-  const usuarios = ["João Silva", "Maria Santos", "Carlos Oliveira", "Ana Pereira", "Paulo Mendes", "Fernanda Lima"]
-  const unidades = [
-    "USF ALTO DOIS CARNEIROS",
-    "USF PRAZERES",
-    "USF CAVALEIRO",
-    "USF MURIBECA",
-    "USF JARDIM JORDÃO",
-    "USF BARRA DE JANGADA",
-  ]
-  const regionais = ["Regional 1", "Regional 2", "Regional 3"]
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [tabletRes, empresasRes, usuariosRes, unidadesRes] = await Promise.all([
+          api.get(`/tablets/${params.id}`),
+          api.get("/empresas"),
+          api.get("/usuarios"),
+          api.get("/unidades"),
+        ])
 
-  // Formatar IMEI
-  const formatIMEI = (value: string) => {
-    return value.replace(/\D/g, "").substring(0, 15)
-  }
+        const tablet = tabletRes.data
+
+        setTombamento(formatTombamento(String(tablet.idTomb)))
+        setImei(tablet.imei)
+        setIdEmpresa(String(tablet.idEmp))
+        setIdUser(String(tablet.idUser))
+        setIdUnidade(String(tablet.idUnidade))
+        setEmpresas(empresasRes.data)
+        setUsuarios(usuariosRes.data)
+        setUnidades(unidadesRes.data)
+        setLoading(false)
+      } catch (err) {
+        toast({
+          title: "Erro",
+          description: "Erro ao carregar os dados do tablet",
+          variant: "destructive",
+        })
+      }
+    }
+
+    fetchData()
+  }, [params.id])
 
   const handleIMEIChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setImei(formatIMEI(e.target.value))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Validação básica
-    if (!tombamento || !imei || !modelo || !empresa || !usuario || !unidade || !regional) {
+    if (!tombamento || !imei || !idEmpresa || !idUser || !idUnidade) {
       toast({
         title: "Erro ao salvar",
         description: "Preencha todos os campos obrigatórios",
@@ -77,7 +78,6 @@ export default function EditarTablet({ params }: { params: { id: string } }) {
       return
     }
 
-    // Validar IMEI (formato básico)
     if (imei.length !== 15) {
       toast({
         title: "IMEI inválido",
@@ -87,26 +87,56 @@ export default function EditarTablet({ params }: { params: { id: string } }) {
       return
     }
 
-    // Lógica para salvar o tablet
-    toast({
-      title: "Tablet atualizado",
-      description: `O tablet #${params.id} foi atualizado com sucesso`,
-      variant: "success",
-    })
+    try {
+      await api.put(`/tablets/${params.id}`, {
+        idTomb: parseInt(tombamento.replace(/\D/g, "")),
+        imei,
+        idEmp: parseInt(idEmpresa),
+        idUser: parseInt(idUser),
+        idUnidade: parseInt(idUnidade),
+      })
+
+      toast({
+        title: "Tablet atualizado",
+        description: `O tablet #${params.id} foi atualizado com sucesso`,
+        variant: "success",
+      })
+    } catch {
+      toast({
+        title: "Erro ao atualizar tablet",
+        description: "Verifique os dados e tente novamente.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const formatIMEI = (value: string) => {
+    return value.replace(/\D/g, "").substring(0, 15)
+  }
+
+  const formatTombamento = (value: string) => {
+    const digits = value.replace(/\D/g, "")
+    if (digits.length <= 3) return digits
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}`
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <span className="text-gray-500 text-sm">Carregando tablet...</span>
+      </div>
+    )
   }
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar currentPath="/" />
 
-      {/* Main Content with Background Image */}
       <main className="flex-1 relative">
-        {/* Background Image */}
         <div className="absolute inset-0 z-0">
           <Image src="/beach-background.jpg" alt="Fundo de praia" fill className="object-cover" priority />
         </div>
 
-        {/* Content */}
         <div className="relative z-10 container mx-auto py-6 px-4 max-w-3xl">
           <div className="bg-white/90 backdrop-blur-sm rounded-xl w-full p-6 shadow-xl border border-gray-100">
             <div className="flex items-center mb-6">
@@ -121,7 +151,7 @@ export default function EditarTablet({ params }: { params: { id: string } }) {
               </h2>
             </div>
 
-            <Card className="border border-gray-100 shadow-md">
+            <Card>
               <CardHeader className="bg-gradient-to-r from-[#0948a7] to-[#298ed3] text-white rounded-t-lg">
                 <CardTitle className="text-xl">Informações do Tablet</CardTitle>
               </CardHeader>
@@ -129,64 +159,39 @@ export default function EditarTablet({ params }: { params: { id: string } }) {
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="tombamento" className="text-gray-700">
-                        Tombamento <span className="text-red-500">*</span>
-                      </Label>
+                      <Label htmlFor="tombamento">Tombamento</Label>
                       <Input
                         id="tombamento"
-                        placeholder="Ex: 123.456"
                         value={tombamento}
-                        onChange={(e) => setTombamento(e.target.value)}
-                        className="border-gray-200"
+                        onChange={(e) => {
+                          const formatted = formatTombamento(e.target.value)
+                          if (formatted.length <= 7) setTombamento(formatted)
+                        }}
                         required
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="imei" className="text-gray-700">
-                        IMEI <span className="text-red-500">*</span>
-                      </Label>
+                      <Label htmlFor="imei">IMEI</Label>
                       <Input
                         id="imei"
-                        placeholder="Ex: 123456789012345"
                         value={imei}
                         onChange={handleIMEIChange}
-                        className="border-gray-200"
                         required
                       />
                       <p className="text-xs text-gray-500">O IMEI deve conter 15 dígitos</p>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="modelo" className="text-gray-700">
-                        Modelo <span className="text-red-500">*</span>
-                      </Label>
-                      <Select value={modelo} onValueChange={setModelo} required>
-                        <SelectTrigger id="modelo" className="border-gray-200">
-                          <SelectValue placeholder="Selecione o modelo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {modelos.map((mod) => (
-                            <SelectItem key={mod} value={mod}>
-                              {mod}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="empresa" className="text-gray-700">
-                        Empresa <span className="text-red-500">*</span>
-                      </Label>
-                      <Select value={empresa} onValueChange={setEmpresa} required>
+                      <Label htmlFor="empresa">Empresa</Label>
+                      <Select value={idEmpresa} onValueChange={setIdEmpresa}>
                         <SelectTrigger id="empresa" className="border-gray-200">
                           <SelectValue placeholder="Selecione a empresa" />
                         </SelectTrigger>
                         <SelectContent>
-                          {empresas.map((emp) => (
-                            <SelectItem key={emp} value={emp}>
-                              {emp}
+                          {empresas.map(emp => (
+                            <SelectItem key={emp.idEmp} value={String(emp.idEmp)}>
+                              {emp.nomeEmp}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -194,17 +199,15 @@ export default function EditarTablet({ params }: { params: { id: string } }) {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="usuario" className="text-gray-700">
-                        Usuário <span className="text-red-500">*</span>
-                      </Label>
-                      <Select value={usuario} onValueChange={setUsuario} required>
+                      <Label htmlFor="usuario">Usuário</Label>
+                      <Select value={idUser} onValueChange={setIdUser}>
                         <SelectTrigger id="usuario" className="border-gray-200">
                           <SelectValue placeholder="Selecione o usuário" />
                         </SelectTrigger>
                         <SelectContent>
-                          {usuarios.map((user) => (
-                            <SelectItem key={user} value={user}>
-                              {user}
+                          {usuarios.map(user => (
+                            <SelectItem key={user.idUser} value={String(user.idUser)}>
+                              {user.nomeUser}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -212,35 +215,15 @@ export default function EditarTablet({ params }: { params: { id: string } }) {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="unidade" className="text-gray-700">
-                        Unidade <span className="text-red-500">*</span>
-                      </Label>
-                      <Select value={unidade} onValueChange={setUnidade} required>
+                      <Label htmlFor="unidade">Unidade</Label>
+                      <Select value={idUnidade} onValueChange={setIdUnidade}>
                         <SelectTrigger id="unidade" className="border-gray-200">
                           <SelectValue placeholder="Selecione a unidade" />
                         </SelectTrigger>
                         <SelectContent>
-                          {unidades.map((unid) => (
-                            <SelectItem key={unid} value={unid}>
-                              {unid}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="regional" className="text-gray-700">
-                        Regional <span className="text-red-500">*</span>
-                      </Label>
-                      <Select value={regional} onValueChange={setRegional} required>
-                        <SelectTrigger id="regional" className="border-gray-200">
-                          <SelectValue placeholder="Selecione a regional" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {regionais.map((reg) => (
-                            <SelectItem key={reg} value={reg}>
-                              {reg}
+                          {unidades.map(unid => (
+                            <SelectItem key={unid.idUnidade} value={String(unid.idUnidade)}>
+                              {unid.nomeUnidade}
                             </SelectItem>
                           ))}
                         </SelectContent>

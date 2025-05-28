@@ -67,15 +67,23 @@ exports.listarChamadosAtrasados = async (req, res) => {
 };
 
 
-exports.listarChamadoPorTablet = async (req, res) => {
-    const { idTablet } = req.params;
-    try {
-        const [rows] = await db.query('SELECT * FROM chamados WHERE idTab = ?', [idTablet]);
-        res.json(rows);
-    } catch (err) {
-        res.status(500).json({ message: 'Erro ao buscar chamados por tablet.', error: err });
-    }
+exports.listarPorTablet = (req, res) => {
+    const { id } = req.params;
+
+    const sql = `
+    SELECT idChamado, dataEntrada, dataSaida, descricao, status,
+    DATEDIFF(CURDATE(), dataEntrada) AS diasAberto
+    FROM chamados
+    WHERE idTab = ?
+    ORDER BY dataEntrada DESC
+  `;
+
+    db.query(sql, [id], (err, result) => {
+        if (err) return res.status(500).json({ error: "Erro ao buscar chamados." });
+        res.json(result);
+    });
 };
+
 
 // Deletar chamado
 exports.deletarChamado = (req, res) => {
@@ -189,7 +197,7 @@ exports.gerarOS = (req, res) => {
         const hoje = new Date();
 
         const dataHoje = `Jaboatão dos Guararapes, ${hoje.getDate()} de ${meses[hoje.getMonth()]
-        } de ${hoje.getFullYear()}`;
+            } de ${hoje.getFullYear()}`;
 
         const dia = format(hoje, 'dd', { locale: ptBR });
         const mes = format(hoje, 'MMMM', { locale: ptBR });
