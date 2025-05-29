@@ -53,14 +53,15 @@ export default function Usuarios() {
       .then((res: any) => {
         const data = Array.isArray(res.data)
           ? res.data.map((u: any) => ({
-            id: u.idUser || u.id || 0,
-            nome: u.nomeUser || u.nome || "",
-            cpf: u.cpf || "",
-            telefone: u.telUser || u.telefone || "",
-            unidade: u.unidade || "",
-            tabletId: u.idTablet,
-            tombamento: u.tombamento,
-          }))
+              id: u.idUser || u.id || 0,
+              nome: u.nomeUser || u.nome || "",
+              cpf: u.cpf || "",
+              telefone: u.telUser || u.telefone || "",
+              unidade: u.unidade || "",
+              tabletId: u.tablet?.idTab ?? undefined,
+              tombamento: u.tablet?.idTomb ?? undefined,
+              imei: u.tablet?.imei ?? undefined,
+            }))
           : [];
         setUsuarios(data);
       })
@@ -74,7 +75,7 @@ export default function Usuarios() {
   }, [])
 
   // Listas únicas para os filtros
-  const unidades = [...new Set(usuarios.map((usuario) => usuario.unidade))]
+  const unidades = [...new Set(usuarios.map((usuario) => usuario.unidade).filter(u => u !== undefined && u !== null && String(u).trim() !== ""))]
 
   const filteredUsuarios = usuarios.filter((usuario) => {
     // Filtro de busca
@@ -214,7 +215,6 @@ export default function Usuarios() {
                           <SelectValue placeholder="Selecione a unidade" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="all">Todas</SelectItem>
                           {unidades.map((unidade) => (
                             <SelectItem key={unidade} value={unidade}>
                               {unidade}

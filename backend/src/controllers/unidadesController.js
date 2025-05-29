@@ -11,8 +11,16 @@ exports.criarUnidade = (req, res) => {
     });
 };
 
+// Listar unidades com contagem de tablets vinculados
 exports.listarUnidades = (req, res) => {
-    db.query("SELECT unidades.*, regionais.numReg AS regional FROM unidades JOIN regionais ON unidades.idReg = regionais.idReg", (err, result) => {
+    const sql = `
+        SELECT un.*, r.numReg AS regional, COUNT(t.idTab) AS tabletsCount
+        FROM unidades un
+        JOIN regionais r ON un.idReg = r.idReg
+        LEFT JOIN tablets t ON un.idUnidade = t.idUnidade
+        GROUP BY un.idUnidade
+    `;
+    db.query(sql, (err, result) => {
         if (err) return res.status(500).json({ error: "Erro ao listar unidades." });
         res.json(result);
     });

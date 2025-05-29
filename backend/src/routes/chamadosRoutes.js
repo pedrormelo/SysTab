@@ -11,6 +11,7 @@ router.get('/id/:id', chamadosController.buscarChamadoPorIdChamado);
 router.put('/:id', chamadosController.atualizarChamado); 
 router.delete('/:id', chamadosController.deletarChamado); 
 router.patch('/:id/fechar', chamadosController.fecharChamado); 
+router.patch('/:id/reabrir', chamadosController.reabrirChamado);
 //router.get('/relatorio', chamadosController.gerarRelatorio);
 
 console.log('Chamados routes loaded!');

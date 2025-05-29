@@ -14,10 +14,10 @@ import {
   Printer,
   FileText,
   FileOutput,
+  RotateCcw,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Textarea } from "@/components/ui/textarea"
 import { Navbar } from "../../components/layout/navbar"
 import { Footer } from "../../components/layout/footer"
 import { useToast } from "@/hooks/use-toast"
@@ -32,7 +32,6 @@ import {
 import api from "@/lib/api"
 
 export default function ChamadoDetails({ params }: { params: { id: string } }) {
-  const [resolucao, setResolucao] = useState("")
   const [isClosing, setIsClosing] = useState(false)
   const [printDialogOpen, setPrintDialogOpen] = useState(false)
   const [chamado, setChamado] = useState<any>(null)
@@ -102,21 +101,43 @@ export default function ChamadoDetails({ params }: { params: { id: string } }) {
   }
 
   const handleCloseChamado = () => {
-    if (!resolucao.trim()) {
-      toast({
-        title: "Erro ao fechar chamado",
-        description: "É necessário informar a resolução do chamado",
-        variant: "destructive",
+    api.patch(`/chamados/${params.id}/fechar`)
+      .then(() => {
+        toast({
+          title: "Chamado fechado com sucesso",
+          description: `O chamado #${params.id} foi fechado`,
+          variant: "success",
+        })
+        setIsClosing(false)
+        // Optionally, reload chamado data
+        setLoading(true)
+        api.get(`/chamados/id/${params.id}`).then(res => {
+          const c = res.data
+          setChamado({
+            ...c,
+            id: c.idChamado || c.id,
+            tabletId: c.idTab,
+            tombamento: c.tombamento || c.idTomb || c.idtombamento || c.tomb || "",
+            usuario: c.nomeUser || c.usuario,
+            telefone: c.telUser || c.telefone,
+            unidade: c.nomeUnidade || c.unidade,
+            itensRecebidos: c.item || c.itensRecebidos,
+            dataEntrada: c.dataEntrada,
+            dataSaida: c.dataSaida,
+            status: c.status,
+            descricao: c.descricao,
+            diasAberto: c.diasAberto,
+          })
+          setLoading(false)
+        })
       })
-      return
-    }
-
-    toast({
-      title: "Chamado fechado com sucesso",
-      description: `O chamado #${params.id} foi fechado`,
-      variant: "success",
-    })
-    setIsClosing(false)
+      .catch(() => {
+        toast({
+          title: "Erro ao fechar chamado",
+          description: "Não foi possível fechar o chamado.",
+          variant: "destructive",
+        })
+      })
   }
 
   const handlePrintOS = (tipo: "entrega" | "devolucao") => {
@@ -126,6 +147,44 @@ export default function ChamadoDetails({ params }: { params: { id: string } }) {
       variant: "success",
     })
     setPrintDialogOpen(false)
+  }
+
+  const handleReabrirChamado = () => {
+    api.patch(`/chamados/${params.id}/reabrir`)
+      .then(() => {
+        toast({
+          title: "Chamado reaberto com sucesso",
+          description: `O chamado #${params.id} foi reaberto`,
+          variant: "success",
+        })
+        setLoading(true)
+        api.get(`/chamados/id/${params.id}`).then(res => {
+          const c = res.data
+          setChamado({
+            ...c,
+            id: c.idChamado || c.id,
+            tabletId: c.idTab,
+            tombamento: c.tombamento || c.idTomb || c.idtombamento || c.tomb || "",
+            usuario: c.nomeUser || c.usuario,
+            telefone: c.telUser || c.telefone,
+            unidade: c.nomeUnidade || c.unidade,
+            itensRecebidos: c.item || c.itensRecebidos,
+            dataEntrada: c.dataEntrada,
+            dataSaida: c.dataSaida,
+            status: c.status,
+            descricao: c.descricao,
+            diasAberto: c.diasAberto,
+          })
+          setLoading(false)
+        })
+      })
+      .catch(() => {
+        toast({
+          title: "Erro ao reabrir chamado",
+          description: "Não foi possível reabrir o chamado.",
+          variant: "destructive",
+        })
+      })
   }
 
   if (loading) {
@@ -203,6 +262,17 @@ export default function ChamadoDetails({ params }: { params: { id: string } }) {
                   >
                     <Save className="h-4 w-4 mr-2" />
                     Fechar Chamado
+                  </Button>
+                )}
+                {chamado.status === "Fechado" && (
+                  <Button
+                    className="rounded-full bg-green-600 hover:bg-green-700 text-white"
+                    size="sm"
+                    onClick={handleReabrirChamado}
+                    title="Reabrir Chamado"
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Reabrir Chamado
                   </Button>
                 )}
               </div>
@@ -306,16 +376,8 @@ export default function ChamadoDetails({ params }: { params: { id: string } }) {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Fechar Chamado</DialogTitle>
-            <DialogDescription>Informe a resolução do chamado para finalizá-lo</DialogDescription>
+            <DialogDescription>Tem certeza que deseja fechar este chamado?</DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <Textarea
-              placeholder="Descreva como o problema foi resolvido..."
-              className="min-h-[120px]"
-              value={resolucao}
-              onChange={(e) => setResolucao(e.target.value)}
-            />
-          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsClosing(false)} className="rounded-full border-gray-200">
               Cancelar

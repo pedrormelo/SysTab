@@ -53,7 +53,7 @@ export default function Unidades() {
               id: u.idUnidade || u.id || 0,
               nome: u.nomeUnidade || u.nome || "",
               regional: u.regional || "",
-              qtdTablets: u.qtdTablets ?? 0,
+              qtdTablets: u.tabletsCount ?? 0,
             }))
           : [];
         setUnidades(data);

@@ -142,7 +142,7 @@ exports.atualizarChamado = (req, res) => {
     });
 };
 
-// Function to close a chamado
+// Function to close a chamado (without resolucao)
 exports.fecharChamado = (req, res) => {
     const { id } = req.params;
     const sql = 'UPDATE chamados SET status = "Fechado", dataSaida = NOW() WHERE idChamado = ?';
@@ -158,6 +158,25 @@ exports.fecharChamado = (req, res) => {
         }
 
         res.json({ message: "Chamado fechado com sucesso." });
+    });
+};
+
+// Function to reopen a chamado
+exports.reabrirChamado = (req, res) => {
+    const { id } = req.params;
+    const sql = 'UPDATE chamados SET status = "Aberto", dataSaida = NULL WHERE idChamado = ?';
+
+    db.query(sql, [id], (err, result) => {
+        if (err) {
+            console.error("Erro ao reabrir chamado:", err);
+            return res.status(500).json({ error: "Erro ao reabrir chamado." });
+        }
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: "Chamado não encontrado." });
+        }
+
+        res.json({ message: "Chamado reaberto com sucesso." });
     });
 };
 

@@ -12,11 +12,29 @@ exports.criarUsuario = (req, res) => {
     });
 };
 
-// Listar usuários
+// Listar usuários com tablet vinculado (um tablet por usuário)
 exports.listarUsuarios = (req, res) => {
-    db.query("SELECT idUser, nomeUser, cpf, telUser FROM usuarios", (err, result) => {
+    const sql = `
+        SELECT u.idUser, u.nomeUser, u.cpf, u.telUser,
+               t.idTab, t.idTomb, t.imei
+        FROM usuarios u
+        LEFT JOIN tablets t ON u.idUser = t.idUser
+    `;
+    db.query(sql, (err, result) => {
         if (err) return res.status(500).json({ error: "Erro ao listar usuários." });
-        res.json(result);
+        // Cada usuário terá as informações do tablet (ou null se não houver)
+        const users = result.map(row => ({
+            idUser: row.idUser,
+            nomeUser: row.nomeUser,
+            cpf: row.cpf,
+            telUser: row.telUser,
+            tablet: row.idTab ? {
+                idTab: row.idTab,
+                idTomb: row.idTomb,
+                imei: row.imei
+            } : null
+        }));
+        res.json(users);
     });
 };
 
