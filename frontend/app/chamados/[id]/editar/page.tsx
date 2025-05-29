@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { ArrowLeft, Save } from "lucide-react"
@@ -15,52 +15,47 @@ import { Label } from "@/components/ui/label"
 import { Navbar } from "../../../components/layout/navbar"
 import { Footer } from "../../../components/layout/footer"
 import { useToast } from "@/hooks/use-toast"
+import api from "@/lib/api"
 
 export default function EditarChamado({ params }: { params: { id: string } }) {
   const { toast } = useToast()
 
-  // Dados de exemplo
-  const chamadoOriginal = {
-    id: 101,
-    tabletId: 1,
-    tombamento: "123.123",
-    dataEntrada: "10/02/2025",
-    dataSaida: null,
-    descricao:
-      "Tela quebrada, necessita de substituição urgente. O usuário relatou que o tablet caiu no chão e a tela trincou em vários pontos, impossibilitando o uso. Será necessário avaliar se compensa o reparo ou a substituição do equipamento.",
-    status: "Aberto",
-    usuario: "João Silva",
-    telefone: "(81) 99999-9999",
-    unidade: "USF ALTO DOIS CARNEIROS",
-    diasAberto: 3,
-    itensRecebidos: "Carregador e Capinha",
-  }
+  const [loading, setLoading] = useState(true)
+  const [descricao, setDescricao] = useState("")
+  const [itensRecebidos, setItensRecebidos] = useState("")
+  const [chamado, setChamado] = useState<any>(null)
 
-  // Estados para os campos editáveis
-  const [descricao, setDescricao] = useState(chamadoOriginal.descricao)
-  const [telefone, setTelefone] = useState(chamadoOriginal.telefone)
-  const [itensRecebidos, setItensRecebidos] = useState(chamadoOriginal.itensRecebidos)
+  useEffect(() => {
+    setLoading(true)
+    api.get(`/chamados/id/${params.id}`)
+      .then(res => {
+        const c = res.data
+        setChamado({
+          ...c,
+          id: c.idChamado || c.id,
+          tabletId: c.idTab,
+          tombamento: c.tombamento || c.idTomb || c.idtombamento || c.tomb || "",
+          usuario: c.nomeUser || c.usuario,
+          unidade: c.nomeUnidade || c.unidade,
+          itensRecebidos: c.item || c.itensRecebidos,
+          dataEntrada: c.dataEntrada,
+          dataSaida: c.dataSaida,
+          status: c.status,
+          descricao: c.descricao,
+          diasAberto: c.diasAberto,
+        })
+        setDescricao(c.descricao || "")
+        setItensRecebidos(c.item || c.itensRecebidos || "")
+        setLoading(false)
+      })
+      .catch(() => {
+        toast({ title: "Erro", description: "Não foi possível carregar o chamado.", variant: "destructive" })
+        setLoading(false)
+      })
+  }, [params.id])
 
-  // Formatar telefone
-  const formatTelefone = (value: string) => {
-    const digits = value.replace(/\D/g, "")
-    if (digits.length <= 2) return `(${digits}`
-    if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`
-    if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`
-    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`
-  }
-
-  const handleTelefoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formattedTelefone = formatTelefone(e.target.value)
-    if (formattedTelefone.length <= 15) {
-      setTelefone(formattedTelefone)
-    }
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    // Validação básica
     if (!itensRecebidos) {
       toast({
         title: "Erro ao salvar",
@@ -69,13 +64,42 @@ export default function EditarChamado({ params }: { params: { id: string } }) {
       })
       return
     }
+    try {
+      await api.put(`/chamados/${params.id}`, {
+        descricao,
+        itensRecebidos,
+      })
+      toast({
+        title: "Chamado atualizado com sucesso",
+        description: `O chamado #${params.id} foi atualizado`,
+        variant: "success",
+      })
+    } catch {
+      toast({
+        title: "Erro ao atualizar chamado",
+        description: "Não foi possível atualizar o chamado.",
+        variant: "destructive",
+      })
+    }
+  }
 
-    // Lógica para salvar o chamado
-    toast({
-      title: "Chamado atualizado com sucesso",
-      description: `O chamado #${params.id} foi atualizado`,
-      variant: "success",
-    })
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-gray-50">
+        <Navbar currentPath="/chamados" />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="animate-pulse">
+            <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
+            <div className="space-y-2">
+              <div className="h-4 bg-gray-200 rounded w-full"></div>
+              <div className="h-4 bg-gray-200 rounded w-full"></div>
+              <div className="h-4 bg-gray-200 rounded w-full"></div>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    )
   }
 
   return (
@@ -114,27 +138,27 @@ export default function EditarChamado({ params }: { params: { id: string } }) {
                     <div className="grid grid-cols-3 gap-4">
                       <div>
                         <p className="text-sm text-gray-500">ID</p>
-                        <p className="font-medium">{chamadoOriginal.tabletId}</p>
+                        <p className="font-medium">{chamado?.tabletId || "-"}</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Tombamento</p>
-                        <p className="font-medium">{chamadoOriginal.tombamento}</p>
+                        <p className="font-medium">{chamado?.tombamento || "-"}</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Usuário</p>
-                        <p className="font-medium">{chamadoOriginal.usuario}</p>
+                        <p className="font-medium">{chamado?.usuario || "-"}</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Unidade</p>
-                        <p className="font-medium">{chamadoOriginal.unidade}</p>
+                        <p className="font-medium">{chamado?.unidade || "-"}</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Data de Entrada</p>
-                        <p className="font-medium">{chamadoOriginal.dataEntrada}</p>
+                        <p className="font-medium">{chamado?.dataEntrada ? chamado.dataEntrada : "-"}</p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Status</p>
-                        <p className="font-medium">{chamadoOriginal.status}</p>
+                        <p className="font-medium">{chamado?.status || "-"}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -160,19 +184,6 @@ export default function EditarChamado({ params }: { params: { id: string } }) {
                           <SelectItem value="Nenhum">Nenhum</SelectItem>
                         </SelectContent>
                       </Select>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="telefone" className="text-gray-700 mb-2 block">
-                        Telefone para Contato
-                      </Label>
-                      <Input
-                        id="telefone"
-                        placeholder="(00) 00000-0000"
-                        className="border-gray-200"
-                        value={telefone}
-                        onChange={handleTelefoneChange}
-                      />
                     </div>
 
                     <div>

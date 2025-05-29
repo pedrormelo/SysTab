@@ -94,15 +94,30 @@ export default function SysTAB() {
     setIsDeleteDialogOpen(true)
   }
 
-  const confirmDelete = () => {
-    toast({
-      title: "Tablet excluído",
-      description: `O tablet #${tabletToDelete} foi excluído com sucesso`,
-      variant: "success",
-    })
-    setIsDeleteDialogOpen(false)
-    setTabletToDelete(null)
+  const confirmDelete = async () => {
+    if (!tabletToDelete) return
+
+    try {
+      await api.delete(`/tablets/${tabletToDelete}`)
+
+      setTablets((prev) => prev.filter((t) => t.idTab !== tabletToDelete))
+      toast({
+        title: "Tablet excluído",
+        description: `O tablet #${tabletToDelete} foi excluído com sucesso`,
+        variant: "success",
+      })
+    } catch (error) {
+      toast({
+        title: "Erro ao excluir",
+        description: "Não foi possível excluir o tablet. Tente novamente.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleteDialogOpen(false)
+      setTabletToDelete(null)
+    }
   }
+
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">

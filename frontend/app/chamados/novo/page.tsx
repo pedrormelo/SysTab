@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { ArrowLeft, Save, FileDown } from "lucide-react"
@@ -16,6 +16,7 @@ import { useSearchParams } from "next/navigation"
 import { Navbar } from "../../components/layout/navbar"
 import { Footer } from "../../components/layout/footer"
 import { useToast } from "@/hooks/use-toast"
+import api from "@/lib/api"
 
 export default function NovoChamado() {
   const searchParams = useSearchParams()
@@ -33,6 +34,9 @@ export default function NovoChamado() {
   const [tabletSelecionado, setTabletSelecionado] = useState(tabletId || "")
   const [itensRecebidos, setItensRecebidos] = useState("")
 
+  // Tablets fetched from backend
+  const [tablets, setTablets] = useState<any[]>([])
+
   // Formatar telefone
   const formatTelefone = (value: string) => {
     const digits = value.replace(/\D/g, "")
@@ -49,45 +53,27 @@ export default function NovoChamado() {
     }
   }
 
-  // Dados de exemplo
-  const tablets = [
-    {
-      id: 1,
-      tombamento: "123.123",
-      imei: "355637050806462",
-      usuario: "João Silva",
-      empresa: "EVEREST",
-      unidade: "USF ALTO DOIS CARNEIROS",
-      modelo: "Samsung Galaxy Tab A7",
-    },
-    {
-      id: 2,
-      tombamento: "124.456",
-      imei: "355637050806463",
-      usuario: "Maria Santos",
-      empresa: "EVEREST",
-      unidade: "USF PRAZERES",
-      modelo: "Samsung Galaxy Tab A7",
-    },
-    {
-      id: 3,
-      tombamento: "125.789",
-      imei: "355637050806464",
-      usuario: "Carlos Oliveira",
-      empresa: "EVEREST",
-      unidade: "USF CAVALEIRO",
-      modelo: "Samsung Galaxy Tab A7",
-    },
-  ]
+  // Fetch tablets from backend
+  useEffect(() => {
+    api.get("/tablets")
+      .then(res => {
+        // Normalize tablets to always have .id and .tombamento
+        const normalized = res.data.map((t: any) => ({
+          ...t,
+          id: t.idTab || t.id, // fallback for mock/dev
+          tombamento: t.tombamento || t.idTomb || t.idtombamento || t.tomb || "",
+        }))
+        setTablets(normalized)
+      })
+      .catch(() => toast({ title: "Erro", description: "Falha ao carregar tablets", variant: "destructive" }))
+  }, [])
 
   // Encontrar o tablet selecionado
   const tablet = tablets.find((t) => t.id === Number(tabletSelecionado))
 
   // Atualize também a função handleSubmit para refletir as mudanças
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    // Validação básica
     if (!tabletSelecionado || !itensRecebidos) {
       toast({
         title: "Erro ao salvar",
@@ -96,13 +82,25 @@ export default function NovoChamado() {
       })
       return
     }
-
-    // Lógica para salvar o chamado
-    toast({
-      title: "Chamado aberto com sucesso",
-      description: `O chamado para o tablet ${tablet?.tombamento} foi registrado`,
-      variant: "success",
-    })
+    try {
+      await api.post("/chamados", {
+        idTab: tabletSelecionado,
+        descricao,
+        item: itensRecebidos,
+      })
+      toast({
+        title: "Chamado aberto com sucesso",
+        description: `O chamado para o tablet ${tabletSelecionado} foi registrado`,
+        variant: "success",
+      })
+      // Optionally redirect to chamados list or details
+    } catch (err) {
+      toast({
+        title: "Erro ao salvar chamado",
+        description: "Ocorreu um erro ao tentar abrir o chamado.",
+        variant: "destructive",
+      })
+    }
   }
 
   return (
@@ -153,10 +151,6 @@ export default function NovoChamado() {
                           <p className="font-medium">{tablet.imei}</p>
                         </div>
                         <div>
-                          <p className="text-sm text-gray-500">Modelo</p>
-                          <p className="font-medium">{tablet.modelo}</p>
-                        </div>
-                        <div>
                           <p className="text-sm text-gray-500">Usuário</p>
                           <p className="font-medium">{tablet.usuario}</p>
                         </div>
@@ -175,7 +169,7 @@ export default function NovoChamado() {
                             <SelectValue placeholder="Selecione um tablet" />
                           </SelectTrigger>
                           <SelectContent>
-                            {tablets.map((t) => (
+                            {tablets.filter(t => t.id !== undefined).map((t) => (
                               <SelectItem key={t.id} value={t.id.toString()}>
                                 ID: {t.id} - Tombamento: {t.tombamento} - {t.usuario}
                               </SelectItem>

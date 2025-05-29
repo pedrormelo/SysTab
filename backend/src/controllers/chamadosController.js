@@ -24,7 +24,7 @@ exports.listarChamados = (req, res) => {
     const sql = `
         SELECT chamados.*, tablets.idTomb, tablets.imei, usuarios.nomeUser, usuarios.telUser
         FROM chamados
-        JOIN tablets ON chamados.idTab = tablets.idTomb
+        JOIN tablets ON chamados.idTab = tablets.idTab
         JOIN usuarios ON tablets.idUser = usuarios.idUser
     `;
     db.query(sql, (err, results) => {
@@ -107,19 +107,28 @@ exports.deletarChamado = (req, res) => {
 // Function to update a chamado
 exports.atualizarChamado = (req, res) => {
     const { id } = req.params;
-    const { idTab, status, item, descricao, dataSaida } = req.body;
+    // Only allow fields that exist in chamados table
+    const allowedFields = ["idTab", "status", "item", "descricao", "dataSaida", "itensRecebidos"];
+    const updates = [];
+    const values = [];
 
-    if (!idTab || !status) {
-        return res.status(400).json({ error: "ID do tablet e status são obrigatórios." });
+    for (const field of allowedFields) {
+        if (req.body[field] !== undefined) {
+            let dbField = field;
+            if (field === "itensRecebidos") dbField = "item";
+            updates.push(`${dbField} = ?`);
+            values.push(req.body[field]);
+        }
     }
 
-    const sql = `
-        UPDATE chamados 
-        SET idTab = ?, status = ?, item = ?, descricao = ?, dataSaida = ? 
-        WHERE idChamado = ?
-    `;
+    if (updates.length === 0) {
+        return res.status(400).json({ error: "Nenhum campo válido para atualizar." });
+    }
 
-    db.query(sql, [idTab, status, item, descricao, dataSaida, id], (err, result) => {
+    const sql = `UPDATE chamados SET ${updates.join(", ")} WHERE idChamado = ?`;
+    values.push(id);
+
+    db.query(sql, values, (err, result) => {
         if (err) {
             console.error("Erro ao atualizar chamado:", err);
             return res.status(500).json({ error: "Erro ao atualizar chamado." });

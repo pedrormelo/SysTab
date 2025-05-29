@@ -1,9 +1,9 @@
 "use client"
 
-import type React from "react"
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
+import { useParams, useRouter } from "next/navigation"
 import { ArrowLeft, Save } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -15,52 +15,57 @@ import { Footer } from "../../../components/layout/footer"
 import { useToast } from "@/hooks/use-toast"
 import api from "@/lib/api"
 
-export default function EditarTablet({ params }: { params: { id: string } }) {
+export default function EditarTablet() {
   const { toast } = useToast()
+  const params = useParams()
+  const router = useRouter()
+  const tabletId = params?.id as string
 
   const [tombamento, setTombamento] = useState("")
   const [imei, setImei] = useState("")
-  const [idEmpresa, setIdEmpresa] = useState("")
   const [idUser, setIdUser] = useState("")
+  const [idEmp, setIdEmp] = useState("")
   const [idUnidade, setIdUnidade] = useState("")
-  const [loading, setLoading] = useState(true)
 
-  const [empresas, setEmpresas] = useState<any[]>([])
   const [usuarios, setUsuarios] = useState<any[]>([])
+  const [empresas, setEmpresas] = useState<any[]>([])
   const [unidades, setUnidades] = useState<any[]>([])
 
+  const [isLoading, setIsLoading] = useState(true)
+
   useEffect(() => {
-    const fetchData = async () => {
+    const carregarDados = async () => {
       try {
-        const [tabletRes, empresasRes, usuariosRes, unidadesRes] = await Promise.all([
-          api.get(`/tablets/${params.id}`),
-          api.get("/empresas"),
+        const [usuariosRes, empresasRes, unidadesRes, tabletRes] = await Promise.all([
           api.get("/usuarios"),
+          api.get("/empresas"),
           api.get("/unidades"),
+          api.get(`/tablets/${tabletId}`),
         ])
 
-        const tablet = tabletRes.data
-
-        setTombamento(formatTombamento(String(tablet.idTomb)))
-        setImei(tablet.imei)
-        setIdEmpresa(String(tablet.idEmp))
-        setIdUser(String(tablet.idUser))
-        setIdUnidade(String(tablet.idUnidade))
-        setEmpresas(empresasRes.data)
         setUsuarios(usuariosRes.data)
+        setEmpresas(empresasRes.data)
         setUnidades(unidadesRes.data)
-        setLoading(false)
-      } catch (err) {
-        toast({
-          title: "Erro",
-          description: "Erro ao carregar os dados do tablet",
-          variant: "destructive",
-        })
+
+        const tablet = tabletRes.data
+        setTombamento(tablet.idTomb.toString().padStart(6, "0").replace(/^(\d{3})(\d{3})$/, "$1.$2"))
+        setImei(tablet.imei)
+        setIdUser(String(tablet.idUser))
+        setIdEmp(String(tablet.idEmp))
+        setIdUnidade(String(tablet.idUnidade))
+
+        setIsLoading(false)
+      } catch (error) {
+        toast({ title: "Erro", description: "Erro ao carregar dados do tablet", variant: "destructive" })
       }
     }
 
-    fetchData()
-  }, [params.id])
+    carregarDados()
+  }, [tabletId])
+
+  const formatIMEI = (value: string) => {
+    return value.replace(/\D/g, "").substring(0, 15)
+  }
 
   const handleIMEIChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setImei(formatIMEI(e.target.value))
@@ -69,49 +74,30 @@ export default function EditarTablet({ params }: { params: { id: string } }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!tombamento || !imei || !idEmpresa || !idUser || !idUnidade) {
-      toast({
-        title: "Erro ao salvar",
-        description: "Preencha todos os campos obrigatórios",
-        variant: "destructive",
-      })
+    if (!tombamento || !imei || !idUser || !idEmp || !idUnidade) {
+      toast({ title: "Erro", description: "Preencha todos os campos obrigatórios", variant: "destructive" })
       return
     }
 
     if (imei.length !== 15) {
-      toast({
-        title: "IMEI inválido",
-        description: "O IMEI deve conter 15 dígitos",
-        variant: "destructive",
-      })
+      toast({ title: "IMEI inválido", description: "O IMEI deve conter 15 dígitos", variant: "destructive" })
       return
     }
 
     try {
-      await api.put(`/tablets/${params.id}`, {
+      await api.put(`/tablets/${tabletId}`, {
         idTomb: parseInt(tombamento.replace(/\D/g, "")),
         imei,
-        idEmp: parseInt(idEmpresa),
         idUser: parseInt(idUser),
+        idEmp: parseInt(idEmp),
         idUnidade: parseInt(idUnidade),
       })
 
-      toast({
-        title: "Tablet atualizado",
-        description: `O tablet #${params.id} foi atualizado com sucesso`,
-        variant: "success",
-      })
-    } catch {
-      toast({
-        title: "Erro ao atualizar tablet",
-        description: "Verifique os dados e tente novamente.",
-        variant: "destructive",
-      })
+      toast({ title: "Tablet atualizado", description: `O tablet #${tabletId} foi atualizado com sucesso`, variant: "success" })
+      router.push(`/tablets/${tabletId}`)
+    } catch (error) {
+      toast({ title: "Erro ao atualizar tablet", description: "Verifique os dados e tente novamente.", variant: "destructive" })
     }
-  }
-
-  const formatIMEI = (value: string) => {
-    return value.replace(/\D/g, "").substring(0, 15)
   }
 
   const formatTombamento = (value: string) => {
@@ -120,18 +106,11 @@ export default function EditarTablet({ params }: { params: { id: string } }) {
     return `${digits.slice(0, 3)}.${digits.slice(3, 6)}`
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <span className="text-gray-500 text-sm">Carregando tablet...</span>
-      </div>
-    )
-  }
+  if (isLoading) return null
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar currentPath="/" />
-
       <main className="flex-1 relative">
         <div className="absolute inset-0 z-0">
           <Image src="/beach-background.jpg" alt="Fundo de praia" fill className="object-cover" priority />
@@ -140,18 +119,18 @@ export default function EditarTablet({ params }: { params: { id: string } }) {
         <div className="relative z-10 container mx-auto py-6 px-4 max-w-3xl">
           <div className="bg-white/90 backdrop-blur-sm rounded-xl w-full p-6 shadow-xl border border-gray-100">
             <div className="flex items-center mb-6">
-              <Link href={`/tablets/${params.id}`}>
+              <Link href={`/tablets/${tabletId}`}>
                 <Button variant="outline" size="sm" className="rounded-full border-gray-200 hover:bg-gray-100 mr-4">
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Voltar
                 </Button>
               </Link>
               <h2 className="text-3xl font-light text-transparent bg-clip-text bg-gradient-to-r from-[#0948a7] to-[#298ed3] inline-block">
-                <span className="font-bold">Editar Tablet #{params.id}</span>
+                <span className="font-bold">Editar Tablet #{tabletId}</span>
               </h2>
             </div>
 
-            <Card>
+            <Card className="border border-gray-100 shadow-md">
               <CardHeader className="bg-gradient-to-r from-[#0948a7] to-[#298ed3] text-white rounded-t-lg">
                 <CardTitle className="text-xl">Informações do Tablet</CardTitle>
               </CardHeader>
@@ -159,83 +138,67 @@ export default function EditarTablet({ params }: { params: { id: string } }) {
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="tombamento">Tombamento</Label>
-                      <Input
-                        id="tombamento"
-                        value={tombamento}
-                        onChange={(e) => {
-                          const formatted = formatTombamento(e.target.value)
-                          if (formatted.length <= 7) setTombamento(formatted)
-                        }}
-                        required
-                      />
+                      <Label htmlFor="tombamento">Tombamento *</Label>
+                      <Input id="tombamento" value={tombamento} onChange={(e) => setTombamento(formatTombamento(e.target.value))} />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="imei">IMEI</Label>
-                      <Input
-                        id="imei"
-                        value={imei}
-                        onChange={handleIMEIChange}
-                        required
-                      />
+                      <Label htmlFor="imei">IMEI *</Label>
+                      <Input id="imei" value={imei} onChange={handleIMEIChange} />
                       <p className="text-xs text-gray-500">O IMEI deve conter 15 dígitos</p>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="empresa">Empresa</Label>
-                      <Select value={idEmpresa} onValueChange={setIdEmpresa}>
-                        <SelectTrigger id="empresa" className="border-gray-200">
-                          <SelectValue placeholder="Selecione a empresa" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {empresas.map(emp => (
-                            <SelectItem key={emp.idEmp} value={String(emp.idEmp)}>
-                              {emp.nomeEmp}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {empresas.length > 0 && idEmp && (
+                      <div className="space-y-2">
+                        <Label htmlFor="empresa">Empresa *</Label>
+                        <Select value={idEmp} onValueChange={setIdEmp}>
+                          <SelectTrigger id="empresa" className="border-gray-200">
+                            <SelectValue placeholder="Selecione a empresa" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {empresas.map(emp => (
+                              <SelectItem key={emp.idEmp} value={String(emp.idEmp)}>{emp.nomeEmp}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
 
-                    <div className="space-y-2">
-                      <Label htmlFor="usuario">Usuário</Label>
-                      <Select value={idUser} onValueChange={setIdUser}>
-                        <SelectTrigger id="usuario" className="border-gray-200">
-                          <SelectValue placeholder="Selecione o usuário" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {usuarios.map(user => (
-                            <SelectItem key={user.idUser} value={String(user.idUser)}>
-                              {user.nomeUser}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {usuarios.length > 0 && idUser && (
+                      <div className="space-y-2">
+                        <Label htmlFor="usuario">Usuário *</Label>
+                        <Select value={idUser} onValueChange={setIdUser}>
+                          <SelectTrigger id="usuario" className="border-gray-200">
+                            <SelectValue placeholder="Selecione o usuário" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {usuarios.map(user => (
+                              <SelectItem key={user.idUser} value={String(user.idUser)}>{user.nomeUser}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
 
-                    <div className="space-y-2">
-                      <Label htmlFor="unidade">Unidade</Label>
-                      <Select value={idUnidade} onValueChange={setIdUnidade}>
-                        <SelectTrigger id="unidade" className="border-gray-200">
-                          <SelectValue placeholder="Selecione a unidade" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {unidades.map(unid => (
-                            <SelectItem key={unid.idUnidade} value={String(unid.idUnidade)}>
-                              {unid.nomeUnidade}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {unidades.length > 0 && idUnidade && (
+                      <div className="space-y-2">
+                        <Label htmlFor="unidade">Unidade *</Label>
+                        <Select value={idUnidade} onValueChange={setIdUnidade}>
+                          <SelectTrigger id="unidade" className="border-gray-200">
+                            <SelectValue placeholder="Selecione a unidade" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {unidades.map(unid => (
+                              <SelectItem key={unid.idUnidade} value={String(unid.idUnidade)}>{unid.nomeUnidade}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                   </div>
 
                   <div className="pt-4">
-                    <Button
-                      type="submit"
-                      className="w-full rounded-full bg-gradient-to-r from-[#0948a7] to-[#298ed3] hover:from-[#083b8a] hover:to-[#1c7ab8] text-white"
-                    >
+                    <Button type="submit" className="w-full rounded-full bg-gradient-to-r from-[#0948a7] to-[#298ed3] hover:from-[#083b8a] hover:to-[#1c7ab8] text-white">
                       <Save className="h-4 w-4 mr-2" />
                       Salvar Alterações
                     </Button>

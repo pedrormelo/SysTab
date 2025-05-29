@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import {
@@ -29,34 +29,60 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import api from "@/lib/api"
 
 export default function ChamadoDetails({ params }: { params: { id: string } }) {
   const [resolucao, setResolucao] = useState("")
   const [isClosing, setIsClosing] = useState(false)
   const [printDialogOpen, setPrintDialogOpen] = useState(false)
+  const [chamado, setChamado] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
   const { toast } = useToast()
 
-  // Dados de exemplo
-  const chamado = {
-    id: 101,
-    tabletId: 1,
-    tombamento: "123.123",
-    dataEntrada: "10/02/2025",
-    dataSaida: null,
-    descricao:
-      "Tela quebrada, necessita de substituição urgente. O usuário relatou que o tablet caiu no chão e a tela trincou em vários pontos, impossibilitando o uso. Será necessário avaliar se compensa o reparo ou a substituição do equipamento.",
-    status: "Aberto",
-    usuario: "João Silva",
-    telefone: "(81) 99999-9999",
-    unidade: "USF ALTO DOIS CARNEIROS",
-    diasAberto: 3,
-    itensRecebidos: "Carregador e Capinha",
+  useEffect(() => {
+    setLoading(true)
+    api.get(`/chamados/id/${params.id}`)
+      .then(res => {
+        // Normalize fields for frontend usage
+        const c = res.data
+        setChamado({
+          ...c,
+          id: c.idChamado || c.id,
+          tabletId: c.idTab,
+          tombamento: c.tombamento || c.idTomb || c.idtombamento || c.tomb || "",
+          usuario: c.nomeUser || c.usuario,
+          telefone: c.telUser || c.telefone,
+          unidade: c.nomeUnidade || c.unidade,
+          itensRecebidos: c.item || c.itensRecebidos,
+          dataEntrada: c.dataEntrada,
+          dataSaida: c.dataSaida,
+          status: c.status,
+          descricao: c.descricao,
+          diasAberto: c.diasAberto,
+        })
+        setLoading(false)
+      })
+      .catch(() => {
+        toast({ title: "Erro", description: "Não foi possível carregar o chamado.", variant: "destructive" })
+        setLoading(false)
+      })
+  }, [params.id])
+
+  // Helper to format date as dd/mm/yyyy
+  function formatDate(dateValue: any) {
+    if (!dateValue) return "-"
+    const date = new Date(dateValue)
+    if (isNaN(date.getTime())) return "-"
+    const day = String(date.getDate()).padStart(2, '0')
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const year = date.getFullYear()
+    return `${day}/${month}/${year}`
   }
 
   // Função para renderizar o status com a bolinha colorida
   const renderStatus = () => {
+    if (!chamado) return null
     let color = ""
-
     if (chamado.status === "Fechado") {
       color = "bg-green-400"
     } else if (chamado.status === "Aberto" && chamado.diasAberto && chamado.diasAberto >= 7) {
@@ -64,7 +90,6 @@ export default function ChamadoDetails({ params }: { params: { id: string } }) {
     } else {
       color = "bg-sky-400"
     }
-
     return (
       <div className="flex items-center">
         <div className={`h-3 w-3 rounded-full ${color} mr-2`}></div>
@@ -101,6 +126,30 @@ export default function ChamadoDetails({ params }: { params: { id: string } }) {
       variant: "success",
     })
     setPrintDialogOpen(false)
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-gray-50">
+        <Navbar currentPath="/chamados" />
+        <main className="flex-1 flex items-center justify-center">
+          <span className="text-gray-500 text-lg">Carregando chamado...</span>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
+
+  if (!chamado) {
+    return (
+      <div className="min-h-screen flex flex-col bg-gray-50">
+        <Navbar currentPath="/chamados" />
+        <main className="flex-1 flex items-center justify-center">
+          <span className="text-red-500 text-lg">Chamado não encontrado.</span>
+        </main>
+        <Footer />
+      </div>
+    )
   }
 
   return (
@@ -172,14 +221,14 @@ export default function ChamadoDetails({ params }: { params: { id: string } }) {
                         <p className="text-sm text-gray-500">Data de Entrada</p>
                         <p className="font-medium flex items-center">
                           <Calendar className="h-4 w-4 mr-1 text-gray-400" />
-                          {chamado.dataEntrada}
+                          {formatDate(chamado.dataEntrada)}
                         </p>
                       </div>
                       <div>
                         <p className="text-sm text-gray-500">Data de Saída</p>
                         <p className="font-medium flex items-center">
                           <Calendar className="h-4 w-4 mr-1 text-gray-400" />
-                          {chamado.dataSaida || "Não finalizado"}
+                          {chamado.dataSaida ? formatDate(chamado.dataSaida) : "Não finalizado"}
                         </p>
                       </div>
                       <div>
@@ -205,11 +254,11 @@ export default function ChamadoDetails({ params }: { params: { id: string } }) {
                       </p>
                     </div>
 
-                    {chamado.status === "Fechado" && (
+                    {chamado.status === "Fechado" && chamado.resolucao && (
                       <div>
                         <p className="text-sm text-gray-500">Resolução</p>
                         <p className="mt-1 text-gray-800 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                          Problema resolvido com a substituição da tela. Equipamento testado e funcionando normalmente.
+                          {chamado.resolucao}
                         </p>
                       </div>
                     )}
