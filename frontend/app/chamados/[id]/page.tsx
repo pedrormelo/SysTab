@@ -140,6 +140,30 @@ export default function ChamadoDetails({ params }: { params: { id: string } }) {
       })
   }
 
+  // Função para baixar O.S. (entrega/devolucao)
+  function downloadOS(tipo: "entrega" | "devolucao") {
+    if (!chamado?.id) return;
+    api.get(`/chamados/gerar-os/${chamado.id}/${tipo}`, { responseType: 'blob' })
+      .then((res) => {
+        const blob = res.data instanceof Blob ? res.data : new Blob([res.data]);
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `OS_${tipo.toUpperCase()}_${chamado.id}.docx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      })
+      .catch(() => {
+        toast({
+          title: "Erro ao gerar O.S.",
+          description: "Não foi possível gerar a Ordem de Serviço.",
+          variant: "destructive",
+        });
+      });
+  }
+
   const handlePrintOS = (tipo: "entrega" | "devolucao") => {
     toast({
       title: `O.S. de ${tipo === "entrega" ? "Entrega" : "Devolução"} gerada`,
@@ -242,8 +266,9 @@ export default function ChamadoDetails({ params }: { params: { id: string } }) {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="rounded-full border-gray-200 hover:bg-gray-100"
+                  className="rounded-full border-gray-200 hover:bg-gray-100 flex items-center gap-2"
                   onClick={() => setPrintDialogOpen(true)}
+                  title="Imprimir O.S."
                 >
                   <Printer className="h-4 w-4 mr-2" />
                   Imprimir O.S.
@@ -395,14 +420,14 @@ export default function ChamadoDetails({ params }: { params: { id: string } }) {
           <DialogHeader className="bg-gradient-to-r from-[#0948a7] to-[#298ed3] text-white p-6 rounded-t-lg">
             <DialogTitle className="text-xl">Gerar Ordem de Serviço</DialogTitle>
             <DialogDescription className="text-white/90 mt-1">
-              Selecione o tipo de O.S. que deseja gerar para o chamado #{params.id}
+              Selecione o tipo de O.S. que deseja gerar para o chamado #{chamado?.id}
             </DialogDescription>
           </DialogHeader>
           <div className="p-6">
             <div className="grid grid-cols-1 gap-4 py-4">
               <Button
                 className="bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 text-white h-16 rounded-xl flex items-center justify-start px-6 transition-all hover:scale-[1.02]"
-                onClick={() => handlePrintOS("entrega")}
+                onClick={() => downloadOS("entrega")}
               >
                 <div className="bg-white/20 p-2 rounded-lg mr-4">
                   <FileText className="h-6 w-6" />
@@ -412,10 +437,9 @@ export default function ChamadoDetails({ params }: { params: { id: string } }) {
                   <p className="text-xs opacity-80">Gerar documento para entrega do equipamento</p>
                 </div>
               </Button>
-
               <Button
                 className="bg-gradient-to-r from-[#0948a7] to-[#298ed3] hover:from-[#083b8a] hover:to-[#1c7ab8] text-white h-16 rounded-xl flex items-center justify-start px-6 transition-all hover:scale-[1.02]"
-                onClick={() => handlePrintOS("devolucao")}
+                onClick={() => downloadOS("devolucao")}
               >
                 <div className="bg-white/20 p-2 rounded-lg mr-4">
                   <FileOutput className="h-6 w-6" />
