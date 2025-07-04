@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Tempo de geração: 23/05/2025 às 20:42
+-- Tempo de geração: 04/07/2025 às 14:54
 -- Versão do servidor: 10.4.32-MariaDB
 -- Versão do PHP: 8.2.12
 
@@ -37,15 +37,6 @@ CREATE TABLE `chamados` (
   `dataSaida` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Despejando dados para a tabela `chamados`
---
-
-INSERT INTO `chamados` (`idChamado`, `idTab`, `status`, `item`, `descricao`, `dataEntrada`, `dataSaida`) VALUES
-(1, 1, 'Aberto', 'Carregador', 'teste test teste', '2025-05-06 18:30:38', NULL),
-(2, 1, 'Aberto', 'Carregador', NULL, '2025-05-07 13:28:15', NULL),
-(3, 1, 'Aberto', 'Carregador', NULL, '2025-05-07 13:30:55', NULL);
-
 -- --------------------------------------------------------
 
 --
@@ -64,10 +55,29 @@ CREATE TABLE `empresas` (
 INSERT INTO `empresas` (`idEmp`, `nomeEmp`) VALUES
 (1, 'EVEREST'),
 (2, 'IBGE'),
-(3, 'TREMA'),
-(4, 'Nova Empresa'),
-(5, 'Nova Empresa'),
-(6, 'Nova Empresa');
+(3, 'TREMA');
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `login`
+--
+
+CREATE TABLE `login` (
+  `idLogin` int(11) NOT NULL,
+  `nome` varchar(100) NOT NULL,
+  `senha` varchar(255) NOT NULL,
+  `nivel` enum('admin','padrao') DEFAULT 'padrao',
+  `criado_em` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Despejando dados para a tabela `login`
+--
+
+INSERT INTO `login` (`idLogin`, `nome`, `senha`, `nivel`, `criado_em`) VALUES
+(1, 'admin', 'HASH_SENHA_ADMIN', 'admin', '2025-07-04 12:52:52'),
+(2, 'padrao', 'HASH_SENHA_PADRAO', 'padrao', '2025-07-04 12:52:52');
 
 -- --------------------------------------------------------
 
@@ -107,14 +117,6 @@ CREATE TABLE `tablets` (
   `idEmp` int(11) NOT NULL,
   `idUnidade` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Despejando dados para a tabela `tablets`
---
-
-INSERT INTO `tablets` (`idTab`, `idTomb`, `imei`, `idUser`, `idEmp`, `idUnidade`) VALUES
-(1, 208474, '355637052256005', 4, 3, 4),
-(2, 12345, '123456789012345', 7, 1, 1);
 
 -- --------------------------------------------------------
 
@@ -272,15 +274,6 @@ CREATE TABLE `usuarios` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Despejando dados para a tabela `usuarios`
---
-
-INSERT INTO `usuarios` (`idUser`, `cpf`, `nomeUser`, `telUser`) VALUES
-(3, '123.456.789-01', 'cabeção II', ''),
-(4, '0', 'Não Cadastrado', NULL),
-(7, '000.000.000-00', 'Pedro Augusto', '(81) 99999-9999');
-
---
 -- Índices para tabelas despejadas
 --
 
@@ -296,6 +289,12 @@ ALTER TABLE `chamados`
 --
 ALTER TABLE `empresas`
   ADD PRIMARY KEY (`idEmp`);
+
+--
+-- Índices de tabela `login`
+--
+ALTER TABLE `login`
+  ADD PRIMARY KEY (`idLogin`);
 
 --
 -- Índices de tabela `regionais`
@@ -336,7 +335,7 @@ ALTER TABLE `usuarios`
 -- AUTO_INCREMENT de tabela `chamados`
 --
 ALTER TABLE `chamados`
-  MODIFY `idChamado` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `idChamado` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT de tabela `empresas`
@@ -345,10 +344,16 @@ ALTER TABLE `empresas`
   MODIFY `idEmp` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
+-- AUTO_INCREMENT de tabela `login`
+--
+ALTER TABLE `login`
+  MODIFY `idLogin` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
 -- AUTO_INCREMENT de tabela `tablets`
 --
 ALTER TABLE `tablets`
-  MODIFY `idTab` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `idTab` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT de tabela `unidades`

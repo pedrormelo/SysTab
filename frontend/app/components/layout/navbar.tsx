@@ -1,11 +1,25 @@
 import Link from "next/link"
 import { Bell, Tablet, FileText, Building2, Users, ExternalLink } from "lucide-react"
+import { useEffect, useState } from "react"
 
 interface NavbarProps {
   currentPath: string
 }
 
 export function Navbar({ currentPath }: NavbarProps) {
+  const [user, setUser] = useState<{ nome: string; nivel: string } | null>(null)
+
+  useEffect(() => {
+    const stored = localStorage.getItem("usuario")
+    if (stored) setUser(JSON.parse(stored))
+  }, [])
+
+  const handleLogout = () => {
+    localStorage.removeItem("token")
+    localStorage.removeItem("usuario")
+    window.location.href = "/login"
+  }
+
   const navItems = [
     { path: "/", icon: Tablet, label: "Tablets" },
     { path: "/chamados", icon: FileText, label: "Chamados" },
@@ -39,7 +53,17 @@ export function Navbar({ currentPath }: NavbarProps) {
         </nav>
       </div>
 
-      <div className="flex items-center">
+      <div className="flex items-center gap-4">
+        {user && (
+          <span className="text-sm font-medium">
+            {user.nome}
+          </span>
+        )}
+        {user && (
+          <button onClick={handleLogout} className="ml-2 px-3 py-1 rounded bg-sky-500 text-white hover:bg-sky-600 transition-colors duration-200 ">
+            Sair
+          </button>
+        )}
         <button className="p-1 relative">
           <Bell className="h-6 w-6" />
           <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
