@@ -15,8 +15,17 @@ const authRoutes = require('./routes/authRoutes.js');
 
 const app = express();
 
+const allowedOrigins = ['http://localhost:3002', 'http://10.87.20.9:3002']; //frontend URLs
+
 app.use(cors({
-    origin: ['http://localhost:3000', 'http://10.87.20.9:3002'], //frontend url
+    origin: function (origin, callback) {
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        } else {
+            return callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
 }));
 
@@ -35,8 +44,7 @@ app.use('/unidades', unidadesRoutes);
 app.use('/regionais', regRoutes);
 
 const PORT = process.env.PORT || 3001;
-
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`Servidor rodando na porta ${PORT}`);
 });
 

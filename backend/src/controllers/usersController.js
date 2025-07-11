@@ -15,19 +15,26 @@ exports.criarUsuario = async (req, res) => {
 
 // Listar usuários com tablet vinculado (um tablet por usuário)
 exports.listarUsuarios = async (req, res) => {
-    const sql = `
-        SELECT u.idUser, u.nomeUser, u.cpf, u.telUser,
+    const { unidade } = req.query;
+    let sql = `
+        SELECT u.idUser, u.nomeUser, u.cpf, u.telUser, u.idUnidade,
                t.idTab, t.idTomb, t.imei
         FROM usuarios u
         LEFT JOIN tablets t ON u.idUser = t.idUser
     `;
+    let params = [];
+    if (unidade) {
+        sql += ' WHERE u.idUnidade = ?';
+        params.push(unidade);
+    }
     try {
-        const [result] = await db.query(sql);
+        const [result] = await db.query(sql, params);
         const users = result.map(row => ({
             idUser: row.idUser,
             nomeUser: row.nomeUser,
             cpf: row.cpf,
             telUser: row.telUser,
+            idUnidade: row.idUnidade,
             tablet: row.idTab ? {
                 idTab: row.idTab,
                 idTomb: row.idTomb,

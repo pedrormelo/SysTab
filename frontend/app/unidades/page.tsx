@@ -1,15 +1,17 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import Image from "next/image"
 import Link from "next/link"
-import { Search, Plus, Trash2, Filter } from "lucide-react"
+import { Search, Plus, Trash2, Filter, ScrollText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
+import { UnidadeSelect } from "@/components/ui/UnidadeSelect"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Navbar } from "../components/layout/navbar"
 import { Footer } from "../components/layout/footer"
@@ -33,8 +35,25 @@ interface Unidade {
   qtdTablets: number;
 }
 
+import { useAuth } from "@/hooks/useAuth"
+import { useRouter } from "next/navigation"
 export default function Unidades() {
+  // ...existing code...
+  const [isTermoDialogOpen, setIsTermoDialogOpen] = useState(false);
+  const [selectedUnidadeId, setSelectedUnidadeId] = useState<number | null>(null);
+  const [acsList, setAcsList] = useState<any[]>([]);
+  const [isLoadingTermos, setIsLoadingTermos] = useState(false);
+  const [downloadStatus, setDownloadStatus] = useState<string>("");
+  const [unidadeSearchTerm, setUnidadeSearchTerm] = useState("");
+  const { user, isLoading } = useAuth();
   const [searchTerm, setSearchTerm] = useState("")
+  // Debug: log user and loading state (must be after useAuth)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      // eslint-disable-next-line no-console
+      console.log("[Unidades] user:", user, "isLoading:", isLoading);
+    }
+  }, [user, isLoading]);
   const [showFilters, setShowFilters] = useState(false)
   const [regionalFilter, setRegionalFilter] = useState("")
   const [comTabletsFilter, setComTabletsFilter] = useState(false)
@@ -44,10 +63,22 @@ export default function Unidades() {
   const [unidades, setUnidades] = useState<Unidade[]>([])
   const tableRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
+  const router = useRouter();
+
+  // Restrict page to admin only: show styled message, do not redirect
+  // This effect is no longer needed, as we want to show a styled message, not redirect
 
   useEffect(() => {
+    if (isLoading) return;
+    if (!user) return;
+    if (user.role !== "admin") return;
     api.get("/unidades")
       .then((res: any) => {
+        // Debug: log API response
+        if (typeof window !== "undefined") {
+          // eslint-disable-next-line no-console
+         // console.log("[Unidades] API response:", res.data);
+        }
         const data = Array.isArray(res.data)
           ? res.data.map((u: any) => ({
               id: u.idUnidade || u.id || 0,
@@ -58,14 +89,29 @@ export default function Unidades() {
           : [];
         setUnidades(data);
       })
-      .catch(() => {
+      .catch((err: any) => {
+        let errorMsg = "Ocorreu um erro inesperado. Tente novamente.";
+        if (err && typeof err === "object") {
+          if ("response" in err && err.response && typeof err.response === "object") {
+            if (err.response.data && typeof err.response.data.error === "string") {
+              errorMsg = err.response.data.error;
+            }
+            if (err.response.status === 403) {
+              errorMsg = "Apenas administradores podem acessar a página de unidades.";
+            }
+          } else if ("message" in err && typeof err.message === "string") {
+            errorMsg = err.message;
+          }
+        } else if (typeof err === "string") {
+          errorMsg = err;
+        }
         toast({
-          title: "Erro ao carregar unidades",
-          description: "Não foi possível obter as unidades do servidor.",
+          title: errorMsg.toLowerCase().includes("admin") ? "Acesso restrito" : "Erro ao carregar unidades",
+          description: errorMsg,
           variant: "destructive",
-        })
-      })
-  }, [])
+        });
+      });
+  }, [isLoading, user, toast]);
 
   // Listas únicas para os filtros
   const regionais = [...new Set(unidades.map((unidade) => unidade.regional))]
@@ -75,7 +121,7 @@ export default function Unidades() {
     const searchMatch =
       searchTerm === "" ||
       unidade.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      unidade.regional.toLowerCase().includes(searchTerm.toLowerCase())
+      String(unidade.regional || "").toLowerCase().includes(searchTerm.toLowerCase())
 
     // Filtros de dropdown
     const regionalMatch = regionalFilter === "" || unidade.regional === regionalFilter
@@ -125,30 +171,66 @@ export default function Unidades() {
       })
       setUnidades((prev) => prev.filter((u) => u.id !== unitToDelete))
     } catch (err) {
-      toast({
-        title: "Erro ao excluir unidade",
-        description: "Não foi possível excluir a unidade.",
-        variant: "destructive",
-      })
+      let errorMsg = "Ocorreu um erro inesperado. Tente novamente.";
+      if (err && typeof err === "object") {
+        if ("response" in err && err.response && typeof err.response === "object") {
+          const response = err.response as { data?: any; status?: number };
+          if (response.data && typeof response.data.error === "string") {
+            errorMsg = response.data.error;
+          }
+          if (response.status === 403) {
+            errorMsg = "Apenas administradores podem excluir unidades.";
+          }
+        } else if ("message" in err && typeof err.message === "string") {
+          errorMsg = err.message;
+        }
+      } else if (typeof err === "string") {
+        errorMsg = err;
+      }
+      if (typeof errorMsg === "string" && errorMsg.toLowerCase().includes("admin")) {
+        toast({
+          title: "Acesso restrito",
+          description: "Apenas administradores podem excluir unidades.",
+          variant: "destructive",
+        });
+        router.replace("/");
+      } else {
+        toast({
+          title: "Erro ao excluir unidade",
+          description: errorMsg,
+          variant: "destructive",
+        });
+      }
     }
     setIsDeleteDialogOpen(false)
     setUnitToDelete(null)
   }
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <span className="text-lg text-gray-500">Carregando...</span>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <span className="text-lg text-red-500">Token inválido ou usuário não autenticado.<br/>Faça login novamente.</span>
+      </div>
+    );
+  }
+  // REMOVIDO: Restrição para login padrão acessar a página de unidades
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar currentPath="/unidades" />
-
-      {/* Main Content with Background Image */}
       <main className="flex-1 relative">
-        {/* Background Image */}
         <div className="absolute inset-0 z-0">
           <Image src="/beach-background.jpg" alt="Fundo de praia" fill className="object-cover" priority />
         </div>
-
-        {/* Content */}
         <div className="relative z-10 container mx-auto py-6 px-4 max-w-6xl">
-          {/* Unidades Container */}
           <div className="bg-white/90 backdrop-blur-sm rounded-xl w-full p-6 shadow-xl border border-gray-100">
             <div className="flex flex-col space-y-4 mb-6">
               <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
@@ -156,7 +238,6 @@ export default function Unidades() {
                   <span className="font-bold">Unidades</span>{" "}
                   <span className="text-gray-400 text-xl">| Gerenciamento</span>
                 </h2>
-
                 <div className="flex flex-col sm:flex-row gap-3">
                   <div className="relative">
                     <Input
@@ -168,7 +249,6 @@ export default function Unidades() {
                     />
                     <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                   </div>
-
                   <div className="flex gap-3">
                     <Button
                       variant="outline"
@@ -178,7 +258,6 @@ export default function Unidades() {
                       <Filter className="h-4 w-4 mr-2" />
                       Filtros {showFilters && <span className="ml-1 text-xs">(Ativos)</span>}
                     </Button>
-
                     <Link href="/unidades/nova">
                       <Button
                         className="rounded-full bg-gradient-to-r from-[#0948a7] to-[#298ed3] hover:from-[#083b8a] hover:to-[#1c7ab8] text-white"
@@ -188,9 +267,110 @@ export default function Unidades() {
                         Nova Unidade
                       </Button>
                     </Link>
+                    {/* Gerar Termos de Responsabilidade Button */}
+                    <Button
+                      className="rounded-full bg-gradient-to-r from-[#0948a7] to-[#298ed3] hover:from-[#083b8a] hover:to-[#1c7ab8] text-white"
+                      onClick={() => setIsTermoDialogOpen(true)}
+                    >
+                      <ScrollText className="h-4 w-4 mr-2" />
+                      Gerar TR'S
+                    </Button>
                   </div>
                 </div>
               </div>
+      {/* Termos de Responsabilidade Dialog */}
+      <Dialog open={isTermoDialogOpen} onOpenChange={setIsTermoDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Gerar Termos de Responsabilidade</DialogTitle>
+            <DialogDescription>
+              Selecione a unidade para gerar os termos para todos os ACS vinculados.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <UnidadeSelect
+              unidades={unidades}
+              value={selectedUnidadeId ? String(selectedUnidadeId) : ""}
+              onValueChange={val => setSelectedUnidadeId(Number(val))}
+              placeholder="Selecione a unidade"
+              selectId="unidade-select"
+            />
+            {selectedUnidadeId && (
+              <div className="flex flex-col items-center gap-3 mt-2">
+                <Button
+                  className="rounded-full bg-gradient-to-r from-[#0948a7] to-[#298ed3] hover:from-[#083b8a] hover:to-[#1c7ab8] text-white"
+                  disabled={isLoadingTermos}
+                  onClick={async () => {
+                    setIsLoadingTermos(true);
+                    setDownloadStatus("");
+                    try {
+                      // Fetch ACS users for unidade
+                      const res = await api.get(`/usuarios?unidade=${selectedUnidadeId}`);
+                      const acs = Array.isArray(res.data) ? res.data.filter((u: any) => u.nomeUser && u.nomeUser !== "Não Cadastrado") : [];
+                      setAcsList(acs);
+                      // Download all termos
+                      let success = 0;
+                      for (const user of acs) {
+                        if (user.tablet && user.tablet.idTab) {
+                          try {
+                            let baseUrl = (api && api.defaults && api.defaults.baseURL) ? api.defaults.baseURL.replace(/\/$/, "") : "";
+                            const url = `${baseUrl}/tablets/${user.tablet.idTab}/termo-responsabilidade`;
+                            // Use fetch to include credentials/token
+                            const token = localStorage.getItem('token');
+                            const response = await fetch(url, {
+                              method: 'GET',
+                              headers: {
+                                'Authorization': token ? `Bearer ${token}` : '',
+                              },
+                            });
+                            if (!response.ok) throw new Error('Falha ao baixar termo');
+                            const blob = await response.blob();
+                            const contentDisposition = response.headers.get('content-disposition');
+                            let filename = `termo_responsabilidade_${user.tablet.idTab}.docx`;
+                            if (contentDisposition) {
+                              const match = contentDisposition.match(/filename="?([^";]+)"?/);
+                              if (match) filename = match[1];
+                            }
+                            const link = document.createElement('a');
+                            link.href = window.URL.createObjectURL(blob);
+                            link.download = filename;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            success++;
+                          } catch (err) {
+                            // Ignore individual errors
+                          }
+                        }
+                      }
+                      setDownloadStatus(`${success} termo(s) gerado(s) para ${acs.length} ACS.`);
+                    } catch (err) {
+                      setDownloadStatus("Erro ao buscar ACS ou gerar termos.");
+                    }
+                    setIsLoadingTermos(false);
+                  }}
+                >
+                  {isLoadingTermos && (
+                    <svg className="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                    </svg>
+                  )}
+                  Gerar termos para todos os ACS desta unidade
+                </Button>
+                {downloadStatus && (
+                  <div className={`text-sm mt-2 px-3 py-2 rounded-lg font-medium shadow-sm ${downloadStatus.includes('Erro') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                    {downloadStatus}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsTermoDialogOpen(false)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
               {/* Filtros expandidos */}
               {showFilters && (
@@ -254,7 +434,7 @@ export default function Unidades() {
 
             {/* Modern Table */}
             <Card className="bg-white rounded-xl overflow-hidden shadow-md border border-gray-100">
-              <div ref={tableRef} className="max-h-[calc(100vh-280px)] overflow-y-auto">
+              <div ref={tableRef} className="max-h-[calc(100vh-280px)] overflow-y-auto scrollbar-hide">
                 <table className="w-full">
                   <thead className="bg-gradient-to-r from-[#0948a7] to-[#298ed3] text-white sticky top-0">
                     <tr>
@@ -271,14 +451,16 @@ export default function Unidades() {
                           <td className="py-2 px-3 text-gray-800 font-medium">{unidade.nome}</td>
                           <td className="py-2 px-3 text-gray-800 text-sm">{unidade.regional}</td>
                           <td className="py-2 px-3">
-                            <Link href={`/tablets?unidade=${unidade.id}`}>
-                              <Badge
-                                variant="outline"
-                                className="bg-blue-50 text-blue-600 hover:bg-blue-100 cursor-pointer"
-                              >
-                                {unidade.qtdTablets} {unidade.qtdTablets === 1 ? "tablet" : "tablets"}
-                              </Badge>
-                            </Link>
+                            <Badge
+                              variant="outline"
+                              className={
+                                unidade.qtdTablets > 0
+                                  ? "bg-blue-50 text-blue-600"
+                                  : "bg-gray-200 text-gray-400"
+                              }
+                            >
+                              {unidade.qtdTablets} {unidade.qtdTablets === 1 ? "tablet" : "tablets"}
+                            </Badge>
                           </td>
                           <td className="py-2 px-3">
                             <div className="flex justify-center space-x-2">

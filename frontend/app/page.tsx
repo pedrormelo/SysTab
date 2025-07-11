@@ -243,7 +243,13 @@ export default function SysTAB() {
                   </thead>
                   <tbody>
                     {filteredTablets.length > 0 ? (
-                      filteredTablets.map((tablet) => (
+                      [...filteredTablets].sort((a, b) => {
+                        // Prefer sort by dataEntrada (if available), else by idTab descending
+                        if (a.dataEntrada && b.dataEntrada) {
+                          return new Date(b.dataEntrada).getTime() - new Date(a.dataEntrada).getTime();
+                        }
+                        return (b.idTab || 0) - (a.idTab || 0);
+                      }).map((tablet) => (
                         <tr key={tablet.idTab} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                           <td className="py-2 px-3 text-blue-600 font-medium">
                             <Link href={`/tablets/${tablet.idTab}`} className="hover:underline">
@@ -298,7 +304,7 @@ export default function SysTAB() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir o tablet #{tabletToDelete}? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir o tablet #{tabletToDelete}? <span className="font-bold text-red-500">Todos</span> os chamados relacionados a esse tablet também serão excluídos. <span className="font-bold text-red-500">Esta ação não pode ser desfeita</span>.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
 import { Search, Plus, Edit, Trash2, Filter, Smartphone, Phone } from "lucide-react"
@@ -36,6 +37,7 @@ interface Usuario {
 }
 
 export default function Usuarios() {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("")
   const [showFilters, setShowFilters] = useState(false)
   const [unidadeFilter, setUnidadeFilter] = useState("")
@@ -51,6 +53,15 @@ export default function Usuarios() {
   useEffect(() => {
     api.get("/usuarios")
       .then((res: any) => {
+        if (res.data && res.data.error && res.data.error.toLowerCase().includes("admin")) {
+          toast({
+            title: "Acesso restrito",
+            description: "Apenas administradores podem acessar a página de usuários.",
+            variant: "destructive",
+          });
+          router.replace("/");
+          return;
+        }
         const data = Array.isArray(res.data)
           ? res.data.map((u: any) => ({
               id: u.idUser || u.id || 0,
@@ -65,14 +76,30 @@ export default function Usuarios() {
           : [];
         setUsuarios(data);
       })
-      .catch(() => {
-        toast({
-          title: "Erro ao carregar usuários",
-          description: "Não foi possível obter os usuários do servidor.",
-          variant: "destructive",
-        })
-      })
-  }, [])
+      .catch((err: any) => {
+        const errorMsg =
+          err?.response?.data?.error ||
+          err?.message ||
+          "Ocorreu um erro inesperado. Tente novamente.";
+        if (
+          typeof errorMsg === "string" && errorMsg.toLowerCase().includes("admin") ||
+          err?.response?.status === 403
+        ) {
+          toast({
+            title: "Acesso restrito",
+            description: "Apenas administradores podem acessar a página de usuários.",
+            variant: "destructive",
+          });
+          router.replace("/");
+        } else {
+          toast({
+            title: "Erro ao carregar usuários",
+            description: errorMsg,
+            variant: "destructive",
+          });
+        }
+      });
+  }, [router, toast]);
 
   // Listas únicas para os filtros
   const unidades = [...new Set(usuarios.map((usuario) => usuario.unidade).filter(u => u !== undefined && u !== null && String(u).trim() !== ""))]
@@ -85,7 +112,7 @@ export default function Usuarios() {
       usuario.cpf.includes(searchTerm) ||
       usuario.unidade.toLowerCase().includes(searchTerm.toLowerCase()) ||
       usuario.telefone.includes(searchTerm) ||
-      (usuario.tombamento && usuario.tombamento.includes(searchTerm))
+      String(usuario.tombamento || "").includes(searchTerm)
 
     // Filtros de dropdown
     const unidadeMatch = unidadeFilter === "" || usuario.unidade === unidadeFilter
@@ -134,12 +161,28 @@ export default function Usuarios() {
         variant: "info",
       })
       setUsuarios((prev) => prev.filter((u) => u.id !== userToDelete))
-    } catch (err) {
-      toast({
-        title: "Erro ao excluir usuário",
-        description: "Não foi possível excluir o usuário.",
-        variant: "destructive",
-      })
+    } catch (err: any) {
+      const errorMsg =
+        err?.response?.data?.error ||
+        err?.message ||
+        "Ocorreu um erro inesperado. Tente novamente.";
+      if (
+        typeof errorMsg === "string" && errorMsg.toLowerCase().includes("admin") ||
+        err?.response?.status === 403
+      ) {
+        toast({
+          title: "Acesso restrito",
+          description: "Apenas administradores podem excluir usuários.",
+          variant: "destructive",
+        });
+        router.replace("/");
+      } else {
+        toast({
+          title: "Erro ao excluir usuário",
+          description: errorMsg,
+          variant: "destructive",
+        });
+      }
     }
     setIsDeleteDialogOpen(false)
     setUserToDelete(null)
@@ -277,7 +320,7 @@ export default function Usuarios() {
                   </thead>
                   <tbody>
                     {filteredUsuarios.length > 0 ? (
-                      filteredUsuarios.map((usuario) => (
+                      [...filteredUsuarios].sort((a, b) => (b.id || 0) - (a.id || 0)).map((usuario) => (
                         <tr key={usuario.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                           <td className="py-2 px-3 text-gray-800 font-medium">{usuario.nome}</td>
                           <td className="py-2 px-3 text-gray-800 text-sm">{usuario.cpf}</td>

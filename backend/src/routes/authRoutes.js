@@ -4,7 +4,7 @@ const authController = require('../controllers/authController');
 const router = express.Router();
 
 const loginLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutos
+    windowMs: 5 * 60 * 1000, // 5 minutos
     max: 5, // máx 5 tentativas por IP nesse tempo
     message: { error: "Muitas tentativas de login. Tente novamente mais tarde." }
 });

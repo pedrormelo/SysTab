@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { UnidadeSelect } from "@/components/ui/UnidadeSelect"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Navbar } from "../../components/layout/navbar"
 import { Footer } from "../../components/layout/footer"
@@ -180,17 +181,17 @@ export default function NovoTablet() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="unidade">Unidade <span className="text-red-500">*</span></Label>
-                      <Select value={idUnidade} onValueChange={setIdUnidade}>
-                        <SelectTrigger id="unidade" className="border-gray-200">
-                          <SelectValue placeholder="Selecione a unidade" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {unidades.map(unid => (
-                            <SelectItem key={unid.idUnidade} value={String(unid.idUnidade)}>{unid.nomeUnidade}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <UnidadeSelect
+                        unidades={unidades.map(u => ({
+                          id: u.idUnidade || u.id || 0,
+                          nome: u.nomeUnidade || u.nome || ""
+                        }))}
+                        value={idUnidade}
+                        onValueChange={setIdUnidade}
+                        placeholder="Selecione a unidade"
+                        label={"Unidade *"}
+                        selectId="unidade"
+                      />
                     </div>
                   </div>
 

@@ -15,6 +15,7 @@ import {
   FileText,
   FileOutput,
   RotateCcw,
+  Trash2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -34,6 +35,7 @@ import api from "@/lib/api"
 export default function ChamadoDetails({ params }: { params: { id: string } }) {
   const [isClosing, setIsClosing] = useState(false)
   const [printDialogOpen, setPrintDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [chamado, setChamado] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
@@ -247,7 +249,7 @@ export default function ChamadoDetails({ params }: { params: { id: string } }) {
         </div>
 
         {/* Content */}
-        <div className="relative z-10 container mx-auto py-6 px-4 max-w-4xl">
+        <div className="relative z-10 container mx-auto py-6 px-4 max-w-5xl">
           <div className="bg-white/90 backdrop-blur-sm rounded-xl w-full p-6 shadow-xl border border-gray-100">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
               <div className="flex items-center gap-4">
@@ -300,6 +302,50 @@ export default function ChamadoDetails({ params }: { params: { id: string } }) {
                     Reabrir Chamado
                   </Button>
                 )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-full border-gray-200 hover:bg-red-100 hover:text-red-700 flex items-center justify-center p-2"
+                  title="Excluir Chamado"
+                  onClick={() => setDeleteDialogOpen(true)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+      {/* Dialog para confirmação de exclusão */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Excluir Chamado</DialogTitle>
+            <DialogDescription>Tem certeza que deseja excluir este chamado? Esta ação não pode ser desfeita.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} className="rounded-full border-gray-200">
+              Cancelar
+            </Button>
+            <Button
+              onClick={async () => {
+                try {
+                  await api.delete(`/chamados/${params.id}`);
+                  toast({
+                    title: "Chamado excluído com sucesso!",
+                    variant: "success",
+                  });
+                  window.location.href = "/chamados";
+                } catch {
+                  toast({
+                    title: "Erro ao excluir chamado",
+                    description: "Não foi possível excluir o chamado.",
+                    variant: "destructive",
+                  });
+                }
+              }}
+              className="rounded-full bg-red-600 hover:bg-red-700 text-white"
+            >
+              Excluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
               </div>
             </div>
 

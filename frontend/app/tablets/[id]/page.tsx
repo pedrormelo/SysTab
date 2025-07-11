@@ -182,7 +182,13 @@ export default function TabletDetails() {
                       </tr>
                     </thead>
                     <tbody>
-                      {chamados.map((chamado) => (
+                      {[...chamados].sort((a, b) => {
+                        // Prefer sort by dataEntrada (date) if available, else by idChamado
+                        if (a.dataEntrada && b.dataEntrada) {
+                          return new Date(b.dataEntrada).getTime() - new Date(a.dataEntrada).getTime();
+                        }
+                        return (b.idChamado || 0) - (a.idChamado || 0);
+                      }).map((chamado) => (
                         <tr key={chamado.idChamado} className="border-b border-gray-100 hover:bg-gray-50">
                           <td className="py-3 px-4 text-blue-600 font-medium">
                             <Link href={`/chamados/${chamado.idChamado}`} className="hover:underline">

@@ -1,6 +1,8 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/hooks/useAuth"
 import Image from "next/image"
 import Link from "next/link"
 import { Search, Plus, Eye, Filter, Clock, Calendar, Printer, FileText, FileOutput } from "lucide-react"
@@ -24,6 +26,16 @@ import {
 import api from "@/lib/api"
 
 export default function Chamados() {
+  const router = useRouter();
+  const { user, isLoading } = useAuth();
+  const { toast } = useToast();
+  // Debug: log user and loading state (must be after useAuth)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      // eslint-disable-next-line no-console
+      console.log("[Chamados] user:", user, "isLoading:", isLoading);
+    }
+  }, [user, isLoading]);
   const [chamados, setChamados] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("todos")
@@ -36,30 +48,68 @@ export default function Chamados() {
   const [selectedChamadoId, setSelectedChamadoId] = useState<number | null>(null)
   const [tabletFilter, setTabletFilter] = useState("")
   const tableRef = useRef<HTMLDivElement>(null)
-  const { toast } = useToast()
+
+  // Remove redirect for non-admins, only show access denied message (handled below)
+  // This effect is no longer needed, as we want to show a styled message, not redirect
 
   useEffect(() => {
-    api.get("/chamados")
-      .then(res => {
-        // Normalize chamados as in backup
-        const normalizados = res.data.map((chamado: any) => ({
-          ...chamado,
-          id: chamado.idChamado,
-          usuario: chamado.nomeUser,
-          tabletId: chamado.idTab,
-          tombamento: chamado.idTomb,
-          unidade: chamado.nomeUnidade,
-        }))
-        setChamados(normalizados)
-      })
-      .catch(() => {
-        toast({
-          title: "Erro ao carregar chamados",
-          description: "Não foi possível obter os chamados do servidor.",
-          variant: "destructive",
+    if (!isLoading && user && user.role === "admin") {
+      api.get("/chamados")
+        .then(res => {
+          // Normalize chamados as in backup
+          const normalizados = res.data.map((chamado: any) => ({
+            ...chamado,
+            id: chamado.idChamado,
+            usuario: chamado.nomeUser,
+            tabletId: chamado.idTab,
+            tombamento: chamado.idTomb,
+            unidade: chamado.nomeUnidade,
+          }))
+          setChamados(normalizados)
         })
-      })
-  }, [])
+        .catch((err) => {
+          toast({
+            title: "Erro ao carregar chamados",
+            description: err?.response?.data?.error || "Não foi possível obter os chamados do servidor.",
+            variant: "destructive",
+          })
+        })
+    }
+  }, [isLoading, user, toast])
+
+  // Show loading spinner while loading user
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <span className="text-lg text-gray-500">Carregando...</span>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <span className="text-lg text-red-500">Token inválido ou usuário não autenticado.<br/>Faça login novamente.</span>
+      </div>
+    );
+  }
+
+  // If not admin, show access denied message (but still render page shell)
+  if (user.role !== "admin") {
+    return (
+      <div className="min-h-screen flex flex-col bg-gray-500">
+        <Navbar currentPath="/chamados" />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="bg-white/90 p-8 rounded-xl shadow-xl border border-gray-100 text-center">
+            <h2 className="text-2xl font-bold text-red-600 mb-2">Acesso restrito</h2>
+            <p className="text-gray-700 mb-4">Apenas administradores podem acessar a página de chamados.</p>
+            <Button className="bg-blue-500 hover:bg-blue-600" onClick={() => router.replace("/")}><p className="text-white">Voltar para o início</p></Button>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   // Use only defined unidades/usuarios/tablets (filter out empty/undefined, always use string for .trim())
   const unidades = [...new Set(chamados.map((c) => c.unidade).filter(u => u !== undefined && u !== null && String(u).trim() !== ""))]
@@ -353,7 +403,13 @@ export default function Chamados() {
                   </thead>
                   <tbody>
                     {filteredChamados.length > 0 ? (
-                      filteredChamados.map((chamado) => (
+                      [...filteredChamados].sort((a, b) => {
+                        // Prefer sort by dataEntrada (date) if available, else by id
+                        if (a.dataEntrada && b.dataEntrada) {
+                          return new Date(b.dataEntrada).getTime() - new Date(a.dataEntrada).getTime();
+                        }
+                        return (b.id || 0) - (a.id || 0);
+                      }).map((chamado) => (
                         <tr key={chamado.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                           <td className="py-2 px-3 text-blue-600 font-medium">
                             <Link href={`/chamados/${chamado.id}`} className="hover:underline">

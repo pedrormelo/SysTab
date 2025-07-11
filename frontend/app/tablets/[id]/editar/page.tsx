@@ -138,19 +138,19 @@ export default function EditarTablet() {
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="tombamento">Tombamento *</Label>
+                      <Label htmlFor="tombamento">Tombamento <span className="text-red-500">*</span></Label>
                       <Input id="tombamento" value={tombamento} onChange={(e) => setTombamento(formatTombamento(e.target.value))} />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="imei">IMEI *</Label>
+                      <Label htmlFor="imei">IMEI <span className="text-red-500">*</span></Label>
                       <Input id="imei" value={imei} onChange={handleIMEIChange} />
                       <p className="text-xs text-gray-500">O IMEI deve conter 15 dígitos</p>
                     </div>
 
                     {empresas.length > 0 && idEmp && (
                       <div className="space-y-2">
-                        <Label htmlFor="empresa">Empresa *</Label>
+                        <Label htmlFor="empresa">Empresa <span className="text-red-500">*</span></Label>
                         <Select value={idEmp} onValueChange={setIdEmp}>
                           <SelectTrigger id="empresa" className="border-gray-200">
                             <SelectValue placeholder="Selecione a empresa" />
@@ -166,7 +166,7 @@ export default function EditarTablet() {
 
                     {usuarios.length > 0 && idUser && (
                       <div className="space-y-2">
-                        <Label htmlFor="usuario">Usuário *</Label>
+                        <Label htmlFor="usuario">Usuário <span className="text-red-500">*</span></Label>
                         <Select value={idUser} onValueChange={setIdUser}>
                           <SelectTrigger id="usuario" className="border-gray-200">
                             <SelectValue placeholder="Selecione o usuário" />
@@ -182,7 +182,7 @@ export default function EditarTablet() {
 
                     {unidades.length > 0 && idUnidade && (
                       <div className="space-y-2">
-                        <Label htmlFor="unidade">Unidade *</Label>
+                        <Label htmlFor="unidade">Unidade <span className="text-red-500">*</span></Label>
                         <Select value={idUnidade} onValueChange={setIdUnidade}>
                           <SelectTrigger id="unidade" className="border-gray-200">
                             <SelectValue placeholder="Selecione a unidade" />

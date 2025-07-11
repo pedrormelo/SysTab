@@ -25,7 +25,7 @@ exports.listarChamados = async (req, res) => {
         SELECT chamados.*, tablets.idTomb, tablets.imei, usuarios.nomeUser, usuarios.telUser
         FROM chamados
         JOIN tablets ON chamados.idTab = tablets.idTab
-        JOIN usuarios ON tablets.idUser = usuarios.idUser
+        LEFT JOIN usuarios ON tablets.idUser = usuarios.idUser
     `;
     try {
         const [results] = await db.query(sql);
@@ -42,10 +42,10 @@ exports.buscarChamadoPorIdChamado = async (req, res) => {
         SELECT chamados.*, tablets.*, usuarios.nomeUser, usuarios.telUser, unidades.nomeUnidade, regionais.numReg AS nomeRegional, empresas.nomeEmp
         FROM chamados
         JOIN tablets ON chamados.idTab = tablets.idTab
-        JOIN usuarios ON tablets.idUser = usuarios.idUser
-        JOIN unidades ON tablets.idUnidade = unidades.idUnidade
-        JOIN regionais ON unidades.idReg = regionais.idReg
-        JOIN empresas ON tablets.idEmp = empresas.idEmp
+        LEFT JOIN usuarios ON tablets.idUser = usuarios.idUser
+        LEFT JOIN unidades ON usuarios.idUnidade = unidades.idUnidade
+        LEFT JOIN regionais ON unidades.idReg = regionais.idReg
+        LEFT JOIN empresas ON tablets.idEmp = empresas.idEmp
         WHERE chamados.idChamado = ?
     `;
     try {
@@ -81,7 +81,7 @@ exports.listarPorTablet = async (req, res) => {
     FROM chamados
     WHERE idTab = ?
     ORDER BY dataEntrada DESC
-  `;
+    `;
     try {
         const [result] = await db.query(sql, [id]);
         res.json(result);
@@ -195,9 +195,9 @@ exports.gerarOS = async (req, res) => {
         FROM chamados
         JOIN tablets ON chamados.idTab = tablets.idTab
         JOIN usuarios ON tablets.idUser = usuarios.idUser
-        JOIN unidades ON tablets.idUnidade = unidades.idUnidade
-        JOIN regionais ON unidades.idReg = regionais.idReg
-        JOIN empresas ON tablets.idEmp = empresas.idEmp
+        LEFT JOIN unidades ON usuarios.idUnidade = unidades.idUnidade
+        LEFT JOIN regionais ON unidades.idReg = regionais.idReg
+        LEFT JOIN empresas ON tablets.idEmp = empresas.idEmp
         WHERE chamados.idChamado = ?
     `;
     try {
