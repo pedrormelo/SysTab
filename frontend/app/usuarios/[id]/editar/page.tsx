@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { UnidadeSelect } from "@/components/ui/UnidadeSelect"
 import { Navbar } from "../../../components/layout/navbar"
 import { Footer } from "../../../components/layout/footer"
 import { useToast } from "@/hooks/use-toast"
@@ -21,8 +22,21 @@ export default function EditarUsuario({ params }: { params: { id: string } }) {
   const [nome, setNome] = useState("")
   const [cpf, setCpf] = useState("")
   const [telefone, setTelefone] = useState("")
+  const [idUnidade, setIdUnidade] = useState("")
+  const [unidades, setUnidades] = useState<any[]>([])
 
   useEffect(() => {
+    api.get("/unidades")
+      .then(res => {
+        setUnidades(Array.isArray(res.data)
+          ? res.data.map((u: any) => ({
+              id: u.idUnidade || u.id || 0,
+              nome: u.nomeUnidade || u.nome || ""
+            }))
+          : []);
+      })
+      .catch(() => toast({ title: "Erro", description: "Falha ao carregar unidades", variant: "destructive" }))
+
     api.get("/usuarios")
       .then((res) => {
         const usuario = res.data.find((u: any) => u.idUsuario == params.id || u.idUser == params.id || u.id == params.id)
@@ -30,6 +44,7 @@ export default function EditarUsuario({ params }: { params: { id: string } }) {
           setNome(usuario.nomeUser || usuario.nome || "")
           setCpf(usuario.cpf || "")
           setTelefone(usuario.telUser || usuario.telefone || "")
+          setIdUnidade(String(usuario.idUnidade || usuario.unidadeId || usuario.idUnidade || ""))
         } else {
           toast({
             title: "Usuário não encontrado",
@@ -77,10 +92,10 @@ export default function EditarUsuario({ params }: { params: { id: string } }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!nome || !cpf) {
+    if (!nome || !cpf || !idUnidade) {
       toast({
         title: "Erro ao salvar",
-        description: "Nome e CPF são obrigatórios.",
+        description: "Nome, CPF e Unidade são obrigatórios.",
         variant: "destructive",
       })
       return
@@ -100,6 +115,7 @@ export default function EditarUsuario({ params }: { params: { id: string } }) {
         nomeUser: nome,
         cpf,
         telUser: telefone,
+        idUnidade
       })
 
       toast({
@@ -186,6 +202,18 @@ export default function EditarUsuario({ params }: { params: { id: string } }) {
                         value={telefone}
                         onChange={handleTelefoneChange}
                         className="border-gray-200"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <UnidadeSelect
+                        unidades={unidades}
+                        value={idUnidade}
+                        onValueChange={setIdUnidade}
+                        placeholder="Selecione a unidade"
+                        label={"Unidade"}
+                        selectId="unidade"
+                        required
                       />
                     </div>
                   </div>

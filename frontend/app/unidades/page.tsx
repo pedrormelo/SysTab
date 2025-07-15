@@ -273,7 +273,7 @@ export default function Unidades() {
                       onClick={() => setIsTermoDialogOpen(true)}
                     >
                       <ScrollText className="h-4 w-4 mr-2" />
-                      Gerar TR'S
+                      Gerar Termos
                     </Button>
                   </div>
                 </div>

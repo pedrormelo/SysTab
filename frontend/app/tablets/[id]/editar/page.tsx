@@ -9,8 +9,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import UsuariosSelect from "@/components/ui/UsuariosSelect"
 import { Navbar } from "../../../components/layout/navbar"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Footer } from "../../../components/layout/footer"
 import { useToast } from "@/hooks/use-toast"
 import api from "@/lib/api"
@@ -23,36 +24,30 @@ export default function EditarTablet() {
 
   const [tombamento, setTombamento] = useState("")
   const [imei, setImei] = useState("")
-  const [idUser, setIdUser] = useState("")
+  const [idUser, setIdUser] = useState<string | null>(null)
   const [idEmp, setIdEmp] = useState("")
-  const [idUnidade, setIdUnidade] = useState("")
-
   const [usuarios, setUsuarios] = useState<any[]>([])
   const [empresas, setEmpresas] = useState<any[]>([])
-  const [unidades, setUnidades] = useState<any[]>([])
 
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     const carregarDados = async () => {
       try {
-        const [usuariosRes, empresasRes, unidadesRes, tabletRes] = await Promise.all([
+        const [usuariosRes, empresasRes, tabletRes] = await Promise.all([
           api.get("/usuarios"),
           api.get("/empresas"),
-          api.get("/unidades"),
           api.get(`/tablets/${tabletId}`),
         ])
 
         setUsuarios(usuariosRes.data)
         setEmpresas(empresasRes.data)
-        setUnidades(unidadesRes.data)
 
         const tablet = tabletRes.data
-        setTombamento(tablet.idTomb.toString().padStart(6, "0").replace(/^(\d{3})(\d{3})$/, "$1.$2"))
+        setTombamento(tablet.idTomb.toString().padStart(6, "0").replace(/^(d{3})(d{3})$/, "$1.$2"))
         setImei(tablet.imei)
         setIdUser(String(tablet.idUser))
         setIdEmp(String(tablet.idEmp))
-        setIdUnidade(String(tablet.idUnidade))
 
         setIsLoading(false)
       } catch (error) {
@@ -74,7 +69,7 @@ export default function EditarTablet() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!tombamento || !imei || !idUser || !idEmp || !idUnidade) {
+    if (!tombamento || !imei || !idEmp) {
       toast({ title: "Erro", description: "Preencha todos os campos obrigatórios", variant: "destructive" })
       return
     }
@@ -88,9 +83,8 @@ export default function EditarTablet() {
       await api.put(`/tablets/${tabletId}`, {
         idTomb: parseInt(tombamento.replace(/\D/g, "")),
         imei,
-        idUser: parseInt(idUser),
+        idUser: idUser === null ? null : parseInt(idUser),
         idEmp: parseInt(idEmp),
-        idUnidade: parseInt(idUnidade),
       })
 
       toast({ title: "Tablet atualizado", description: `O tablet #${tabletId} foi atualizado com sucesso`, variant: "success" })
@@ -164,37 +158,19 @@ export default function EditarTablet() {
                       </div>
                     )}
 
-                    {usuarios.length > 0 && idUser && (
+                    {usuarios.length > 0 && (
                       <div className="space-y-2">
-                        <Label htmlFor="usuario">Usuário <span className="text-red-500">*</span></Label>
-                        <Select value={idUser} onValueChange={setIdUser}>
-                          <SelectTrigger id="usuario" className="border-gray-200">
-                            <SelectValue placeholder="Selecione o usuário" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {usuarios.map(user => (
-                              <SelectItem key={user.idUser} value={String(user.idUser)}>{user.nomeUser}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          <UsuariosSelect
+                            usuarios={usuarios.map((u: any) => ({ id: u.idUser, nome: u.nomeUser }))}
+                            value={idUser}
+                            onValueChange={setIdUser}
+                            label="Usuário"
+                            placeholder="Selecione o usuário"
+                          />
                       </div>
                     )}
 
-                    {unidades.length > 0 && idUnidade && (
-                      <div className="space-y-2">
-                        <Label htmlFor="unidade">Unidade <span className="text-red-500">*</span></Label>
-                        <Select value={idUnidade} onValueChange={setIdUnidade}>
-                          <SelectTrigger id="unidade" className="border-gray-200">
-                            <SelectValue placeholder="Selecione a unidade" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {unidades.map(unid => (
-                              <SelectItem key={unid.idUnidade} value={String(unid.idUnidade)}>{unid.nomeUnidade}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
+                    {/* Unidade select removido: unidade é vinculada via usuário */}
                   </div>
 
                   <div className="pt-4">

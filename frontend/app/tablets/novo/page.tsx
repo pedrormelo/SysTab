@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { UnidadeSelect } from "@/components/ui/UnidadeSelect"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import UsuariosSelect from "@/components/ui/UsuariosSelect"
 import { Navbar } from "../../components/layout/navbar"
 import { Footer } from "../../components/layout/footer"
 import { useToast } from "@/hooks/use-toast"
@@ -21,13 +22,11 @@ export default function NovoTablet() {
   const [tombamento, setTombamento] = useState("")
   const [imei, setImei] = useState("")
   const [idEmpresa, setIdEmpresa] = useState("")
-  const [idUser, setIdUsuario] = useState("")
-  const [idUnidade, setIdUnidade] = useState("")
+  const [idUser, setIdUsuario] = useState<string | null>(null)
   const { toast } = useToast()
 
   const [empresas, setEmpresas] = useState<any[]>([])
   const [usuarios, setUsuarios] = useState<any[]>([])
-  const [unidades, setUnidades] = useState<any[]>([])
 
   useEffect(() => {
     api.get("/empresas").then(res => setEmpresas(res.data)).catch(() =>
@@ -35,9 +34,6 @@ export default function NovoTablet() {
     )
     api.get("/usuarios").then(res => setUsuarios(res.data)).catch(() =>
       toast({ title: "Erro", description: "Falha ao carregar usuários", variant: "destructive" })
-    )
-    api.get("/unidades").then(res => setUnidades(res.data)).catch(() =>
-      toast({ title: "Erro", description: "Falha ao carregar unidades", variant: "destructive" })
     )
   }, [])
 
@@ -52,7 +48,7 @@ export default function NovoTablet() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!tombamento || !imei || !idEmpresa || !idUser || !idUnidade) {
+    if (!tombamento || !imei || !idEmpresa) {
       toast({
         title: "Erro ao salvar",
         description: "Preencha todos os campos obrigatórios",
@@ -72,11 +68,10 @@ export default function NovoTablet() {
 
     try {
       const payload = {
-        idTomb: tombamento.replace(/\D/g, ""), // envia como string sem ponto
+        idTomb: tombamento.replace(/\D/g, ""),
         imei,
         idEmp: idEmpresa,
-        idUser: idUser,
-        idUnidade: idUnidade,
+        idUser: idUser === null ? null : idUser,
       }
 
       console.log("Enviando:", payload)
@@ -93,7 +88,6 @@ export default function NovoTablet() {
       setImei("")
       setIdEmpresa("")
       setIdUsuario("")
-      setIdUnidade("")
     } catch (error) {
       toast({
         title: "Erro ao cadastrar tablet",
@@ -167,32 +161,16 @@ export default function NovoTablet() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="usuario">Usuário <span className="text-red-500">*</span></Label>
-                      <Select value={idUser} onValueChange={setIdUsuario}>
-                        <SelectTrigger id="usuario" className="border-gray-200">
-                          <SelectValue placeholder="Selecione o usuário" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {usuarios.map(user => (
-                            <SelectItem key={user.idUser} value={String(user.idUser)}>{user.nomeUser}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <UnidadeSelect
-                        unidades={unidades.map(u => ({
-                          id: u.idUnidade || u.id || 0,
-                          nome: u.nomeUnidade || u.nome || ""
-                        }))}
-                        value={idUnidade}
-                        onValueChange={setIdUnidade}
-                        placeholder="Selecione a unidade"
-                        label={"Unidade *"}
-                        selectId="unidade"
+                      <UsuariosSelect
+                        usuarios={usuarios.map((u: any) => ({ id: u.idUser, nome: u.nomeUser }))}
+                        value={idUser}
+                        onValueChange={setIdUsuario}
+                        label="Usuário"
+                        placeholder="Selecione o usuário"
                       />
                     </div>
+
+                    {/* Unidade field removed: unidade is now linked via the selected user */}
                   </div>
 
                   <div className="pt-4">

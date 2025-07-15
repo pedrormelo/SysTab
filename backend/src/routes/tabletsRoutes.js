@@ -10,7 +10,11 @@ router.get("/busca", auth, tabletsController.buscarTablet);
 router.get("/:id", auth, tabletsController.buscarTabletPorId);
 // Gerar termo de responsabilidade do tablet
 router.get("/:id/termo-responsabilidade", auth, tabletsController.gerarTermoResponsabilidade);
+
+// Edit tablet
 router.put("/:id", auth, tabletsController.editarTablet);
+
+// Unlink user from tablet
 
 // ✅ Aqui aplicamos o controle de nível de acesso:
 router.delete("/:id", auth, (req, res, next) => {

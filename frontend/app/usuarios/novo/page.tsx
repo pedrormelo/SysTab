@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { ArrowLeft, Save } from "lucide-react"
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { UnidadeSelect } from "@/components/ui/UnidadeSelect"
 import { Navbar } from "../../components/layout/navbar"
 import { Footer } from "../../components/layout/footer"
 import { useToast } from "@/hooks/use-toast"
@@ -20,7 +20,23 @@ export default function NovoUsuario() {
   const [nome, setNome] = useState("")
   const [cpf, setCpf] = useState("")
   const [telefone, setTelefone] = useState("")
+  const [idUnidade, setIdUnidade] = useState("")
+  const [unidades, setUnidades] = useState<any[]>([])
   const { toast } = useToast()
+
+  useEffect(() => {
+    api.get("/unidades")
+      .then(res => {
+        setUnidades(Array.isArray(res.data)
+          ? res.data.map((u: any) => ({
+              id: u.idUnidade || u.id || 0,
+              nome: u.nomeUnidade || u.nome || ""
+            }))
+          : []);
+      })
+      .catch(() => toast({ title: "Erro", description: "Falha ao carregar unidades", variant: "destructive" }))
+
+  }, [toast])
 
   // Função para formatar CPF
   const formatCPF = (value: string) => {
@@ -57,7 +73,7 @@ export default function NovoUsuario() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!nome || !cpf ) {
+    if (!nome || !cpf || !idUnidade) {
       toast({
         title: "Erro ao salvar",
         description: "Preencha todos os campos obrigatórios",
@@ -76,7 +92,7 @@ export default function NovoUsuario() {
     }
 
     try {
-      await api.post("/usuarios", { nomeUser: nome, cpf, telUser: telefone })
+      await api.post("/usuarios", { nomeUser: nome, cpf, telUser: telefone, idUnidade })
       toast({
         title: "Usuário cadastrado",
         description: `O usuário ${nome} foi cadastrado com sucesso`,
@@ -85,6 +101,7 @@ export default function NovoUsuario() {
       setNome("")
       setCpf("")
       setTelefone("")
+      setIdUnidade("")
     } catch (err) {
       toast({
         title: "Erro ao cadastrar usuário",
@@ -168,8 +185,18 @@ export default function NovoUsuario() {
                       />
                     </div>
 
+                    <div className="space-y-2">
+                      <UnidadeSelect
+                        unidades={unidades}
+                        value={idUnidade}
+                        onValueChange={setIdUnidade}
+                        placeholder="Selecione a unidade"
+                        label={"Unidade"}
+                        selectId="unidade"
+                        required
+                      />
+                    </div>
                   </div>
-
                   <div className="pt-4">
                     <Button
                       type="submit"

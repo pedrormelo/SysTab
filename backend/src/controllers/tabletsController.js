@@ -24,6 +24,9 @@ exports.gerarTermoResponsabilidade = async (req, res) => {
         const [results] = await db.query(sql, [id]);
         if (results.length === 0) return res.status(404).json({ mensagem: 'Tablet não encontrado' });
         const data = results[0];
+        if (!data.nomeUser) {
+            return res.status(400).json({ erro: 'Não é possível gerar termo: tablet sem usuário vinculado.' });
+        }
         const conteudo = fs.readFileSync(caminhoModelo, 'binary');
         const zip = new PizZip(conteudo);
         const doc = new Docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
@@ -56,78 +59,39 @@ exports.gerarTermoResponsabilidade = async (req, res) => {
         res.status(500).json(err);
     }
 };
-
 // CRIAR TABLET
 exports.criarTablet = async (req, res) => {
     const { idTomb, imei, idUser, idEmp } = req.body;
-    if (!idTomb || !imei || !idUser || !idEmp) {
-        return res.status(400).json({ error: "Todos os campos são obrigatórios." });
+    if (!idTomb || !imei || !idEmp) {
+        return res.status(400).json({ error: "Campos obrigatórios: idTomb, imei, idEmp." });
     }
     try {
-        // Get user name
-        const [userRows] = await db.query("SELECT nomeUser FROM usuarios WHERE idUser = ?", [idUser]);
-        const nomeUser = userRows[0]?.nomeUser;
-        if (!nomeUser) {
-            return res.status(400).json({ error: "Usuário não encontrado." });
-        }
-        // Only allow multiple tablets for 'Não Cadastrado'
-        if (nomeUser !== "Não Cadastrado") {
-            const [verifResult] = await db.query("SELECT * FROM tablets WHERE idUser = ?", [idUser]);
-            if (verifResult.length > 0) {
-                return res.status(400).json({ error: "Este usuário já possui um tablet vinculado." });
+        let userToInsert = null;
+        if (idUser) {
+            // Get user name
+            const [userRows] = await db.query("SELECT nomeUser FROM usuarios WHERE idUser = ?", [idUser]);
+            const nomeUser = userRows[0]?.nomeUser;
+            if (!nomeUser) {
+                return res.status(400).json({ error: "Usuário não encontrado." });
             }
+            // Only allow multiple tablets for 'Não Cadastrado'
+            if (nomeUser !== "Não Cadastrado") {
+                const [verifResult] = await db.query("SELECT * FROM tablets WHERE idUser = ?", [idUser]);
+                if (verifResult.length > 0) {
+                    return res.status(400).json({ error: "Este usuário já possui um tablet vinculado." });
+                }
+            }
+            userToInsert = idUser;
         }
         const sql = "INSERT INTO tablets (idTomb, imei, idUser, idEmp) VALUES (?, ?, ?, ?)";
-        const [result] = await db.query(sql, [idTomb, imei, idUser, idEmp]);
+        const [result] = await db.query(sql, [idTomb, imei, userToInsert, idEmp]);
         res.status(201).json({ message: "Tablet criado com sucesso.", idTab: result.insertId });
     } catch (err) {
         res.status(500).json({ error: "Erro ao criar tablet." });
     }
 };
-
-exports.criarTablet = async (req, res) => {
-    const { idTomb, imei, idUser, idEmp } = req.body;
-    if (!idTomb || !imei || !idUser || !idEmp) {
-        return res.status(400).json({ error: "Todos os campos são obrigatórios." });
-    }
-    const verificarSql = "SELECT * FROM tablets WHERE idUser = ?";
-    try {
-        const [verifResult] = await db.query(verificarSql, [idUser]);
-        if (verifResult.length > 0) {
-            return res.status(400).json({ error: "Este usuário já possui um tablet vinculado." });
-        }
-        const sql = "INSERT INTO tablets (idTomb, imei, idUser, idEmp) VALUES (?, ?, ?, ?)";
-        const [result] = await db.query(sql, [idTomb, imei, idUser, idEmp]);
-        res.status(201).json({ message: "Tablet criado com sucesso.", idTab: result.insertId });
-    } catch (err) {
-        res.status(500).json({ error: "Erro ao criar tablet." });
-    }
-};
-
 
 // LISTAR TABLETS
-exports.listarTablets = async (req, res) => {
-    const { unidade } = req.query;
-    let sql = `
-        SELECT t.*, u.nomeUser AS usuario, un.nomeUnidade AS unidade, r.numReg AS regional, e.nomeEmp AS empresa
-        FROM tablets t
-        LEFT JOIN usuarios u ON t.idUser = u.idUser
-        LEFT JOIN unidades un ON u.idUnidade = un.idUnidade
-        LEFT JOIN regionais r ON un.idReg = r.idReg
-        LEFT JOIN empresas e ON t.idEmp = e.idEmp
-    `;
-    let params = [];
-    if (unidade) {
-        sql += ' WHERE u.idUnidade = ?';
-        params.push(unidade);
-    }
-    try {
-        const [result] = await db.query(sql, params);
-        res.json(result);
-    } catch (err) {
-        res.status(500).json({ error: "Erro ao listar tablets." });
-    }
-};
 exports.listarTablets = async (req, res) => {
     const { unidade } = req.query;
     let sql = `
@@ -166,7 +130,7 @@ exports.buscarTablet = async (req, res) => {
     JOIN regionais r ON un.idReg = r.idReg
     JOIN empresas e ON t.idEmp = e.idEmp
     WHERE t.idTomb = ? OR t.imei = ?
-  `;
+    `;
     try {
         const [result] = await db.query(sql, [tombamento, imei]);
         res.json(result);
@@ -174,6 +138,8 @@ exports.buscarTablet = async (req, res) => {
         res.status(500).json({ error: "Erro na busca." });
     }
 };
+
+// BUSCAR TABLET POR ID
 exports.buscarTablet = async (req, res) => {
     const { tombamento, imei } = req.query;
     if (!tombamento && !imei) {
@@ -187,7 +153,7 @@ exports.buscarTablet = async (req, res) => {
     JOIN regionais r ON un.idReg = r.idReg
     JOIN empresas e ON t.idEmp = e.idEmp
     WHERE t.idTomb = ? OR t.imei = ?
-  `;
+    `;
     try {
         const [result] = await db.query(sql, [tombamento, imei]);
         res.json(result);
@@ -208,7 +174,7 @@ exports.buscarTabletPorId = async (req, res) => {
     LEFT JOIN regionais r ON un.idReg = r.idReg
     LEFT JOIN empresas e ON t.idEmp = e.idEmp
     WHERE t.idTab = ?
-  `;
+    `;
     try {
         const [result] = await db.query(sql, [id]);
         if (result.length === 0) return res.status(404).json({ error: "Tablet não encontrado." });
@@ -217,26 +183,6 @@ exports.buscarTabletPorId = async (req, res) => {
         res.status(500).json({ error: "Erro ao buscar tablet." });
     }
 };
-exports.buscarTabletPorId = async (req, res) => {
-    const { id } = req.params;
-    const sql = `
-    SELECT t.*, u.nomeUser, u.telUser, un.nomeUnidade, r.numReg, e.nomeEmp
-    FROM tablets t
-    LEFT JOIN usuarios u ON t.idUser = u.idUser
-    LEFT JOIN unidades un ON u.idUnidade = un.idUnidade
-    LEFT JOIN regionais r ON un.idReg = r.idReg
-    LEFT JOIN empresas e ON t.idEmp = e.idEmp
-    WHERE t.idTab = ?
-  `;
-    try {
-        const [result] = await db.query(sql, [id]);
-        if (result.length === 0) return res.status(404).json({ error: "Tablet não encontrado." });
-        res.json(result[0]);
-    } catch (err) {
-        res.status(500).json({ error: "Erro ao buscar tablet." });
-    }
-};
-
 
 
 // EDITAR TABLET
@@ -244,50 +190,37 @@ exports.editarTablet = async (req, res) => {
     const { id } = req.params;
     const { idTomb, imei, idUser, idEmp } = req.body;
     try {
-        // Get user name
-        const [userRows] = await db.query("SELECT nomeUser FROM usuarios WHERE idUser = ?", [idUser]);
-        const nomeUser = userRows[0]?.nomeUser;
-        if (!nomeUser) {
-            return res.status(400).json({ error: "Usuário não encontrado." });
-        }
-        // Only allow multiple tablets for 'Não Cadastrado'
-        if (nomeUser !== "Não Cadastrado") {
-            const [verifResult] = await db.query("SELECT * FROM tablets WHERE idUser = ? AND idTab != ?", [idUser, id]);
-            if (verifResult.length > 0) {
-                return res.status(400).json({ error: "Este usuário já possui outro tablet vinculado." });
+        let userToUpdate = null;
+        if (idUser === null || idUser === undefined) {
+            userToUpdate = null;
+        } else {
+            // Get user name
+            const [userRows] = await db.query("SELECT nomeUser FROM usuarios WHERE idUser = ?", [idUser]);
+            const nomeUser = userRows[0]?.nomeUser;
+            if (!nomeUser) {
+                return res.status(400).json({ error: "Usuário não encontrado." });
             }
+            // Only allow multiple tablets for 'Não Cadastrado'
+            if (nomeUser !== "Não Cadastrado") {
+                const [verifResult] = await db.query("SELECT * FROM tablets WHERE idUser = ? AND idTab != ?", [idUser, id]);
+                if (verifResult.length > 0) {
+                    return res.status(400).json({ error: "Este usuário já possui outro tablet vinculado." });
+                }
+            }
+            userToUpdate = idUser;
         }
         const sql = `
-      UPDATE tablets
-      SET idTomb = ?, imei = ?, idUser = ?, idEmp = ?
-      WHERE idTab = ?
-    `;
-        await db.query(sql, [idTomb, imei, idUser, idEmp, id]);
+        UPDATE tablets
+        SET idTomb = ?, imei = ?, idUser = ?, idEmp = ?
+        WHERE idTab = ?
+        `;
+        await db.query(sql, [idTomb, imei, userToUpdate, idEmp, id]);
         res.json({ message: "Tablet atualizado com sucesso." });
     } catch (err) {
         res.status(500).json({ error: "Erro ao atualizar tablet." });
     }
-};
-exports.editarTablet = async (req, res) => {
-    const { id } = req.params;
-    const { idTomb, imei, idUser, idEmp } = req.body;
-    const verificarSql = "SELECT * FROM tablets WHERE idUser = ? AND idTab != ?";
-    try {
-        const [verifResult] = await db.query(verificarSql, [idUser, id]);
-        if (verifResult.length > 0) {
-            return res.status(400).json({ error: "Este usuário já possui outro tablet vinculado." });
-        }
-        const sql = `
-      UPDATE tablets
-      SET idTomb = ?, imei = ?, idUser = ?, idEmp = ?
-      WHERE idTab = ?
-    `;
-        await db.query(sql, [idTomb, imei, idUser, idEmp, id]);
-        res.json({ message: "Tablet atualizado com sucesso." });
-    } catch (err) {
-        res.status(500).json({ error: "Erro ao atualizar tablet." });
-    }
-};
+}
+
 
 
 exports.deletarTablet = async (req, res) => {

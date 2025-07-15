@@ -4,7 +4,8 @@ import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
-import { Search, Plus, Edit, Trash2, Filter, Smartphone, Phone } from "lucide-react"
+import { Search, Plus, Edit, Trash2, Filter, Smartphone, Phone, Paperclip, Eye, Download, Upload } from "lucide-react"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
@@ -34,6 +35,7 @@ interface Usuario {
   unidade: string;
   tabletId?: number;
   tombamento?: string;
+  termoAssinado?: boolean; // true if user has a signed Termo PDF
 }
 
 export default function Usuarios() {
@@ -71,7 +73,7 @@ export default function Usuarios() {
               unidade: u.unidade || "",
               tabletId: u.tablet?.idTab ?? undefined,
               tombamento: u.tablet?.idTomb ?? undefined,
-              imei: u.tablet?.imei ?? undefined,
+              termoAssinado: !!u.termoAssinado, // expects backend to return this
             }))
           : [];
         setUsuarios(data);
@@ -377,6 +379,151 @@ export default function Usuarios() {
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 p-0 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full"
+                                    title="Termo de Responsabilidade"
+                                  >
+                                    <Paperclip className="h-4 w-4" />
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent align="center" className="w-56 p-3">
+                                  <div className="flex flex-col gap-2">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <Paperclip className="h-4 w-4 text-blue-500" />
+                                      <span className="font-medium text-sm">Termo de Responsabilidade</span>
+                                    </div>
+                                    {usuario.termoAssinado ? (
+                                      <>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="w-full justify-start text-green-700 hover:bg-green-50"
+                                          onClick={async () => {
+                                            try {
+                                              const response = await api.get(`/usuarios/${usuario.id}/termo/view`, { responseType: 'blob' });
+                                              const blob = new Blob([response.data], { type: 'application/pdf' });
+                                              const url = window.URL.createObjectURL(blob);
+                                              const win = window.open();
+                                              if (win) {
+                                                win.document.write(
+                                                  `<iframe src='${url}' width='100%' height='100%' style='border:none'></iframe>`
+                                                );
+                                              }
+                                            } catch (err: any) {
+                                              toast({
+                                                title: 'Erro ao visualizar termo',
+                                                description: err?.response?.data?.error || err.message || 'Erro desconhecido.',
+                                                variant: 'destructive',
+                                              });
+                                            }
+                                          }}
+                                        >
+                                          <Eye className="h-4 w-4 mr-2" /> Visualizar
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="w-full justify-start text-blue-700 hover:bg-blue-50"
+                                          onClick={async () => {
+                                            try {
+                                              const response = await api.get(`/usuarios/${usuario.id}/termo/download`, { responseType: 'blob' });
+                                              const blob = new Blob([response.data], { type: 'application/pdf' });
+                                              const url = window.URL.createObjectURL(blob);
+                                              const a = document.createElement('a');
+                                              a.href = url;
+                                              a.download = `termo_${usuario.id}.pdf`;
+                                              document.body.appendChild(a);
+                                              a.click();
+                                              document.body.removeChild(a);
+                                              window.URL.revokeObjectURL(url);
+                                            } catch (err: any) {
+                                              toast({
+                                                title: 'Erro ao baixar termo',
+                                                description: err?.response?.data?.error || err.message || 'Erro desconhecido.',
+                                                variant: 'destructive',
+                                              });
+                                            }
+                                          }}
+                                        >
+                                          <Download className="h-4 w-4 mr-2" /> Baixar
+                                        </Button>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="w-full justify-start text-red-700 hover:bg-red-50"
+                                          onClick={async () => {
+                                            try {
+                                              await api.delete(`/usuarios/${usuario.id}/termo`);
+                                              toast({
+                                                title: 'Termo Excluído',
+                                                description: 'O termo foi excluído com sucesso.',
+                                                variant: 'success',
+                                              });
+                                              setUsuarios((prev) => prev.map((u) => u.id === usuario.id ? { ...u, termoAssinado: false } : u));
+                                            } catch (err: any) {
+                                              toast({
+                                                title: 'Error deleting termo',
+                                                description: err?.response?.data?.error || err.message || 'Unknown error.',
+                                                variant: 'destructive',
+                                              });
+                                            }
+                                          }}
+                                        >
+                                          <Trash2 className="h-4 w-4 mr-2" /> Excluir Termo
+                                        </Button>
+                                        <div className="text-xs text-gray-500 mt-2">Termo anexado</div>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <label htmlFor={`upload-termo-${usuario.id}`} className="w-full">
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="w-full justify-start text-orange-700 hover:bg-orange-50"
+                                            asChild
+                                          >
+                                            <span><Upload className="h-4 w-4 mr-2" /> Anexar PDF</span>
+                                          </Button>
+                                          <input
+                                            id={`upload-termo-${usuario.id}`}
+                                            type="file"
+                                            accept="application/pdf"
+                                            style={{ display: 'none' }}
+                                            onChange={async (e) => {
+                                              const file = e.target.files?.[0];
+                                              if (!file) return;
+                                              const formData = new FormData();
+                                              formData.append('termo', file); // field name must match backend
+                                              try {
+                                                await api.post(`/usuarios/${usuario.id}/termo/upload`, formData, {
+                                                  headers: { 'Content-Type': 'multipart/form-data' },
+                                                });
+                                                toast({
+                                                  title: 'Termo anexado',
+                                                  description: 'O termo foi anexado com sucesso.',
+                                                  variant: 'success',
+                                                });
+                                                setUsuarios((prev) => prev.map((u) => u.id === usuario.id ? { ...u, termoAssinado: true } : u));
+                                              } catch (err: any) {
+                                                toast({
+                                                  title: 'Erro ao anexar termo',
+                                                  description: err?.response?.data?.error || err.message || 'Erro desconhecido.',
+                                                  variant: 'destructive',
+                                                });
+                                              }
+                                            }}
+                                          />
+                                        </label>
+                                        <div className="text-xs text-gray-400 mt-2">Não anexado</div>
+                                      </>
+                                    )}
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
                             </div>
                           </td>
                         </tr>
