@@ -6,7 +6,7 @@ export function Footer() {
       <div className="group bg-gradient-to-r from-[#0948a7] to-[#1c7ab8] text-white p-3 rounded-2xl shadow-lg flex items-center space-x-4 hover:shadow-xl transition-all duration-500 ease-in-out hover:scale-105">
         <div className="text-xs max-w-0 group-hover:max-w-xs opacity-0 group-hover:opacity-100 transition-all duration-500 ease-in-out overflow-hidden whitespace-nowrap">
           <p>Gerenciador de Tablets do GTI da Sec. de Saúde</p>
-          <p>Jaboatão dos Guararapes - Março de 2025 - Ver: 2.0</p>
+          <p>Jaboatão dos Guararapes - Março de 2025 - Ver: 3.3.3</p>
           <p>
             Clique{" "}
             <a href="https://github.com/pedrormelo/SysTab" className="underline font-bold hover:text-blue-200 transition-colors">

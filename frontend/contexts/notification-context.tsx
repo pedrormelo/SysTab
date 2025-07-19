@@ -59,7 +59,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   // Atualizar o contador de não lidas quando as notificações mudarem
   useEffect(() => {
-    const count = notifications.filter((notification) => !notification.read).length
+    const count = Array.isArray(notifications) ? notifications.filter((notification) => !notification.read).length : 0
     setUnreadCount(count)
 
     // Salvar notificações no localStorage
@@ -82,7 +82,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     toast({
       title: notification.title,
       description: notification.message,
-      variant: notification.type,
+      variant: notification.type === "error" ? "destructive" : notification.type,
     })
   }
 
@@ -102,7 +102,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }
 
   const removeNotification = (id: string) => {
-    setNotifications((prev) => prev.filter((notification) => notification.id !== id))
+    setNotifications((prev) => Array.isArray(prev) ? prev.filter((notification) => notification.id !== id) : [])
   }
 
   const clearAllNotifications = () => {

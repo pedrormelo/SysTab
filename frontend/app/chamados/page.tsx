@@ -112,11 +112,12 @@ export default function Chamados() {
   }
 
   // Use only defined unidades/usuarios/tablets (filter out empty/undefined, always use string for .trim())
-  const unidades = [...new Set(chamados.map((c) => c.unidade).filter(u => u !== undefined && u !== null && String(u).trim() !== ""))]
-  const usuarios = [...new Set(chamados.map((c) => c.usuario).filter(u => u !== undefined && u !== null && String(u).trim() !== ""))]
-  const tombamentos = [...new Set(chamados.map((c) => c.tombamento).filter(t => t !== undefined && t !== null && String(t).trim() !== ""))]
+  const safeChamados = Array.isArray(chamados) ? chamados : [];
+  const unidades = [...new Set(safeChamados.map((c) => c.unidade).filter(u => u !== undefined && u !== null && String(u).trim() !== ""))]
+  const usuarios = [...new Set(safeChamados.map((c) => c.usuario).filter(u => u !== undefined && u !== null && String(u).trim() !== ""))]
+  const tombamentos = [...new Set(safeChamados.map((c) => c.tombamento).filter(t => t !== undefined && t !== null && String(t).trim() !== ""))]
 
-  const filteredChamados = chamados.filter((chamado) => {
+  const filteredChamados = safeChamados.filter((chamado) => {
     if (statusFilter === "abertos" && chamado.status !== "Aberto") return false
     if (statusFilter === "fechados" && chamado.status !== "Fechado") return false
     if (statusFilter === "atrasados" && (chamado.status !== "Aberto" || (chamado.diasAberto ?? 0) < 7)) return false
@@ -317,6 +318,16 @@ export default function Chamados() {
               {/* Filtros expandidos */}
               {showFilters && (
                 <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 animate-in fade-in duration-200">
+                  <div className="mb-4 flex flex-wrap gap-4 items-center">
+                    <span className="text-sm text-gray-700 font-medium">
+                      Total de chamados: <span className="font-bold">{chamados.length}</span>
+                    </span>
+                    {filteredChamados.length !== chamados.length && (
+                      <span className="text-sm text-blue-700 font-medium">
+                        Filtrados: <span className="font-bold">{filteredChamados.length}</span>
+                      </span>
+                    )}
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div>
                       <Label htmlFor="usuario-filter" className="text-sm text-gray-500 mb-1 block">

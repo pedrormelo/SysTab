@@ -38,7 +38,18 @@ export default function SysTAB() {
 
   useEffect(() => {
     api.get("/tablets")
-      .then(res => setTablets(res.data))
+      .then(res => {
+        if (Array.isArray(res.data)) {
+          setTablets(res.data)
+        } else {
+          setTablets([])
+          toast({
+            title: "Erro de autenticação",
+            description: res.data?.error || "Token não enviado. Faça login novamente.",
+            variant: "destructive",
+          })
+        }
+      })
       .catch(() => {
         toast({
           title: "Erro ao carregar tablets",
@@ -48,11 +59,12 @@ export default function SysTAB() {
       })
   }, [])
 
-  const empresas = [...new Set(tablets.map((tablet) => tablet.empresa))]
-  const unidades = [...new Set(tablets.map((tablet) => tablet.unidade))]
-  const regionais = [...new Set(tablets.map((tablet) => tablet.regional))]
+  const safeTablets = Array.isArray(tablets) ? tablets : [];
+  const empresas = Array.isArray(safeTablets) ? [...new Set(safeTablets.map((tablet) => tablet.empresa))] : [];
+  const unidades = Array.isArray(safeTablets) ? [...new Set(safeTablets.map((tablet) => tablet.unidade))] : [];
+  const regionais = Array.isArray(safeTablets) ? [...new Set(safeTablets.map((tablet) => tablet.regional))] : [];
 
-  const filteredTablets = tablets.filter((tablet) => {
+  const filteredTablets = Array.isArray(safeTablets) ? safeTablets.filter((tablet) => {
     const searchMatch =
       searchTerm === "" ||
       String(tablet.imei).toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -66,7 +78,7 @@ export default function SysTAB() {
     const regionalMatch = regionalFilter === "" || tablet.regional === regionalFilter
 
     return searchMatch && empresaMatch && unidadeMatch && regionalMatch
-  })
+  }) : []
 
   const clearFilters = () => {
     setEmpresaFilter("")
@@ -100,7 +112,7 @@ export default function SysTAB() {
     try {
       await api.delete(`/tablets/${tabletToDelete}`)
 
-      setTablets((prev) => prev.filter((t) => t.idTab !== tabletToDelete))
+      setTablets((prev) => Array.isArray(prev) ? prev.filter((t) => t.idTab !== tabletToDelete) : [])
       toast({
         title: "Tablet excluído",
         description: `O tablet #${tabletToDelete} foi excluído com sucesso`,
@@ -174,6 +186,16 @@ export default function SysTAB() {
 
               {showFilters && (
                 <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 animate-in fade-in duration-200">
+                  <div className="mb-4 flex flex-wrap gap-4 items-center">
+                    <span className="text-sm text-gray-700 font-medium">
+                      Total de tablets: <span className="font-bold">{tablets.length}</span>
+                    </span>
+                    {filteredTablets.length !== tablets.length && (
+                      <span className="text-sm text-blue-700 font-medium">
+                        Filtrados: <span className="font-bold">{filteredTablets.length}</span>
+                      </span>
+                    )}
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div>
                       <Label htmlFor="empresa-filter" className="text-sm text-gray-500 mb-1 block">Empresa</Label>
@@ -227,6 +249,7 @@ export default function SysTAB() {
               )}
             </div>
 
+            {/* Counter now only appears inside the filter field */}
             <Card className="bg-white rounded-xl overflow-hidden shadow-md border border-gray-100">
               <div ref={tableRef} className="max-h-[calc(100vh-350px)] overflow-y-auto">
                 <table className="w-full">

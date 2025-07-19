@@ -69,25 +69,25 @@ export default function Unidades() {
   // This effect is no longer needed, as we want to show a styled message, not redirect
 
   useEffect(() => {
-    if (isLoading) return;
-    if (!user) return;
-    if (user.role !== "admin") return;
+    if (isLoading || !user) return;
     api.get("/unidades")
       .then((res: any) => {
-        // Debug: log API response
-        if (typeof window !== "undefined") {
-          // eslint-disable-next-line no-console
-         // console.log("[Unidades] API response:", res.data);
+        if (Array.isArray(res.data)) {
+          const data = res.data.map((u: any) => ({
+            id: u.idUnidade || u.id || 0,
+            nome: u.nomeUnidade || u.nome || "",
+            regional: u.regional || "",
+            qtdTablets: u.tabletsCount ?? 0,
+          }))
+          setUnidades(data);
+        } else {
+          setUnidades([]);
+          toast({
+            title: "Erro de autenticação",
+            description: res.data?.error || "Token não enviado. Faça login novamente.",
+            variant: "destructive",
+          });
         }
-        const data = Array.isArray(res.data)
-          ? res.data.map((u: any) => ({
-              id: u.idUnidade || u.id || 0,
-              nome: u.nomeUnidade || u.nome || "",
-              regional: u.regional || "",
-              qtdTablets: u.tabletsCount ?? 0,
-            }))
-          : [];
-        setUnidades(data);
       })
       .catch((err: any) => {
         let errorMsg = "Ocorreu um erro inesperado. Tente novamente.";
@@ -112,29 +112,31 @@ export default function Unidades() {
         });
       });
   }, [isLoading, user, toast]);
-
   // Listas únicas para os filtros
-  const regionais = [...new Set(unidades.map((unidade) => unidade.regional))]
+  const safeUnidades = Array.isArray(unidades) ? unidades : [];
+  const regionais = [...new Set(safeUnidades.map((unidade) => unidade.regional))]
 
-  const filteredUnidades = unidades.filter((unidade) => {
-    // Filtro de busca
-    const searchMatch =
-      searchTerm === "" ||
-      unidade.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      String(unidade.regional || "").toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredUnidades = Array.isArray(safeUnidades)
+    ? safeUnidades.filter((unidade: Unidade) => {
+        // Filtro de busca
+        const searchMatch =
+          searchTerm === "" ||
+          unidade.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          String(unidade.regional || "").toLowerCase().includes(searchTerm.toLowerCase());
 
-    // Filtros de dropdown
-    const regionalMatch = regionalFilter === "" || unidade.regional === regionalFilter
+        // Filtros de dropdown
+        const regionalMatch = regionalFilter === "" || unidade.regional === regionalFilter;
 
-    // Filtros de checkbox
-    const comTabletsMatch = !comTabletsFilter || unidade.qtdTablets > 0
-    const semTabletsMatch = !semTabletsFilter || unidade.qtdTablets === 0
+        // Filtros de checkbox
+        const comTabletsMatch = !comTabletsFilter || unidade.qtdTablets > 0;
+        const semTabletsMatch = !semTabletsFilter || unidade.qtdTablets === 0;
 
-    return searchMatch && regionalMatch && comTabletsMatch && semTabletsMatch
-  })
+        return searchMatch && regionalMatch && comTabletsMatch && semTabletsMatch;
+      })
+    : [];
 
   // Limpar filtros
-  const clearFilters = () => {
+  const clearFilters = (): void => {
     setRegionalFilter("")
     setComTabletsFilter(false)
     setSemTabletsFilter(false)
@@ -169,7 +171,7 @@ export default function Unidades() {
         description: `A unidade #${unitToDelete} foi excluída com sucesso`,
         variant: "info",
       })
-      setUnidades((prev) => prev.filter((u) => u.id !== unitToDelete))
+      setUnidades((prev) => Array.isArray(prev) ? prev.filter((u) => u.id !== unitToDelete) : [])
     } catch (err) {
       let errorMsg = "Ocorreu um erro inesperado. Tente novamente.";
       if (err && typeof err === "object") {
@@ -221,7 +223,7 @@ export default function Unidades() {
       </div>
     );
   }
-  // REMOVIDO: Restrição para login padrão acessar a página de unidades
+  // Permitir login padrão visualizar unidades, mas não excluir
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -375,6 +377,16 @@ export default function Unidades() {
               {/* Filtros expandidos */}
               {showFilters && (
                 <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 animate-in fade-in duration-200">
+                  <div className="mb-4 flex flex-wrap gap-4 items-center">
+                    <span className="text-sm text-gray-700 font-medium">
+                      Total de unidades: <span className="font-bold">{unidades.length}</span>
+                    </span>
+                    {filteredUnidades.length !== unidades.length && (
+                      <span className="text-sm text-blue-700 font-medium">
+                        Filtradas: <span className="font-bold">{filteredUnidades.length}</span>
+                      </span>
+                    )}
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <div>
                       <Label htmlFor="regional-filter" className="text-sm text-gray-500 mb-1 block">
@@ -446,7 +458,7 @@ export default function Unidades() {
                   </thead>
                   <tbody>
                     {filteredUnidades.length > 0 ? (
-                      filteredUnidades.map((unidade) => (
+                      filteredUnidades.map((unidade: Unidade) => (
                         <tr key={unidade.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                           <td className="py-2 px-3 text-gray-800 font-medium">{unidade.nome}</td>
                           <td className="py-2 px-3 text-gray-800 text-sm">{unidade.regional}</td>
@@ -464,15 +476,17 @@ export default function Unidades() {
                           </td>
                           <td className="py-2 px-3">
                             <div className="flex justify-center space-x-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 p-0 text-gray-600 hover:text-red-600 hover:bg-red-50"
-                                title="Excluir"
-                                onClick={() => handleDeleteUnit(unidade.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                              {user?.role === "admin" && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0 text-gray-600 hover:text-red-600 hover:bg-red-50"
+                                  title="Excluir"
+                                  onClick={() => handleDeleteUnit(unidade.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              )}
                             </div>
                           </td>
                         </tr>

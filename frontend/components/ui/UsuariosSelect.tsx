@@ -23,7 +23,7 @@ type UsuariosSelectProps = {
     className?: string;
 };
 
-export default function UsuariosSelect({ value, onValueChange, usuarios, label, placeholder = "Selecione um usuário", error, disabled, loading, required, className }: UsuariosSelectProps) {
+export default function UsuariosSelect({ value, onValueChange, usuarios = [], label, placeholder = "Selecione um usuário", error, disabled, loading, required, className }: UsuariosSelectProps) {
     const NAO_CADASTRADO_VALUE = "NAO_CADASTRADO";
     const [isOpen, setIsOpen] = useState(false);
     const [search, setSearch] = useState("");
@@ -37,9 +37,11 @@ export default function UsuariosSelect({ value, onValueChange, usuarios, label, 
 
     // Filtered list
     const filteredUsuarios = useMemo(() =>
-        usuariosWithNC.filter(u =>
-            u.nome.toLowerCase().includes(search.toLowerCase())
-        ),
+        Array.isArray(usuariosWithNC)
+            ? usuariosWithNC.filter(u =>
+                u.nome.toLowerCase().includes(search.toLowerCase())
+            )
+            : [],
         [usuariosWithNC, search]
     );
 

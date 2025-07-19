@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
@@ -397,7 +398,7 @@ export default function Usuarios() {
                                       <span className="font-medium text-sm">Termo de Responsabilidade</span>
                                     </div>
                                     {usuario.termoAssinado ? (
-                                      <>
+                                      <React.Fragment>
                                         <Button
                                           variant="ghost"
                                           size="sm"
@@ -476,9 +477,9 @@ export default function Usuarios() {
                                           <Trash2 className="h-4 w-4 mr-2" /> Excluir Termo
                                         </Button>
                                         <div className="text-xs text-gray-500 mt-2">Termo anexado</div>
-                                      </>
+                                      </React.Fragment>
                                     ) : (
-                                      <>
+                                      <React.Fragment>
                                         <label htmlFor={`upload-termo-${usuario.id}`} className="w-full">
                                           <Button
                                             variant="ghost"
@@ -519,7 +520,7 @@ export default function Usuarios() {
                                           />
                                         </label>
                                         <div className="text-xs text-gray-400 mt-2">Não anexado</div>
-                                      </>
+                                      </React.Fragment>
                                     )}
                                   </div>
                                 </PopoverContent>

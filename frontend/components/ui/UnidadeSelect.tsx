@@ -27,7 +27,7 @@ interface UnidadeSelectProps {
 }
 
 export function UnidadeSelect({
-    unidades,
+    unidades = [],
     value,
     onValueChange,
     placeholder = "Selecione a unidade",
@@ -45,8 +45,10 @@ export function UnidadeSelect({
 
     // Memoize filtered unidades for performance
     const filteredUnidades = useMemo(() => {
-        if (!search.trim()) return unidades
-        return unidades.filter((u) => u.nome.toLowerCase().includes(search.toLowerCase().trim()))
+        if (!search.trim()) return Array.isArray(unidades) ? unidades : [];
+        return Array.isArray(unidades)
+            ? unidades.filter((u) => u.nome.toLowerCase().includes(search.toLowerCase().trim()))
+            : [];
     }, [search, unidades])
 
     // Find selected unidade name for display

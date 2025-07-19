@@ -143,7 +143,7 @@ export default function TabletDetails() {
                   <div className="space-y-4">
                     <div>
                       <p className="text-sm text-gray-500">Nome</p>
-                      <p className="font-medium">{tablet.nomeUser}</p>
+                      <p className="font-medium">{tablet.nomeUser ? tablet.nomeUser : "Usuário Não Cadastrado"}</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">Telefone</p>
@@ -166,6 +166,19 @@ export default function TabletDetails() {
                     Abrir Chamado
                   </Button>
                 </Link>
+                {/* Gerar termo de responsabilidade */}
+                <Button
+                  className="rounded-full bg-gradient-to-r from-[#0948a7] to-[#298ed3] text-white"
+                  disabled={!tablet.nomeUser}
+                  onClick={() => {
+                    if (!tablet.nomeUser) return;
+                    window.open(`/api/tablets/${id}/termo-responsabilidade`, '_blank');
+                  }}
+                  title={tablet.nomeUser ? "Gerar termo de responsabilidade" : "Vincule um usuário para gerar o termo"}
+                >
+                  <Printer className="h-4 w-4 mr-2" />
+                  Gerar Termo de Responsabilidade
+                </Button>
               </div>
 
               <Card className="bg-white rounded-xl overflow-hidden shadow-md border border-gray-100">
