@@ -6,7 +6,7 @@ const api = axios.create({
     withCredentials: true,
 })
 
-console.log("API URL usada:", process.env.NEXT_PUBLIC_API_URL);
+// console.log("API URL usada:", process.env.NEXT_PUBLIC_API_URL);
 
 // Add this interceptor:
 api.interceptors.request.use((config) => {
